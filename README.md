@@ -57,8 +57,11 @@ The app has no package-manager or build requirement. Optional automated browser 
 ```sh
 npm install --prefix work/test-tools --cache work/npm-cache playwright@1.65.1
 NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-evidence-browser.js
+NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-a11y-browser.js
 MODEL_TEST=1 NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-evidence-browser.js
 ```
+
+`test-a11y-browser.js` checks the footer's accessibility claim the way a booth visitor would: Tab order (skip link first), WAI-ARIA tablist/tab/tabpanel semantics on all eight views, and full keyboard traversal with ArrowRight/ArrowLeft/Home/End — in English and Chinese. A human screen-reader pass (NVDA or VoiceOver) is still recommended before claiming anything stronger.
 
 Set `CHROMIUM_PATH` for your installed Chromium if needed. The first command checks the default path, paired evidence, source labels, model-load fallback, Chinese mobile layout and `file://` (reports a skip if browser policy blocks local-file navigation). `MODEL_TEST=1` additionally runs genuine CLIP inference, checks all six probabilities sum to one, performs a fresh-worker cache-only run, reloads the app offline, checks original-image reattachment by SHA, and tests fallback after evicting weights. The real-model test downloads ~150 MB and intentionally removes its cached weights at the end. Use `PROOF_TEST_PROFILE` only with a disposable test profile. In a managed network, `PROOF_TEST_MIRROR` can point to a test-only streaming mirror that verifies upstream TLS; it is never an application setting.
 
