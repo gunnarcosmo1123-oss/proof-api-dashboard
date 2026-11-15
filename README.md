@@ -10,7 +10,7 @@
 
 </div>
 
-> 中文摘要:这是 Proof API 的可交互高保真原型——照片提交审核、AI 三模型验证评分、重复检测拦截、结果总览分析,外加证据核查智能体;v0.2 新增组织分层分析(组织 → 城市 → 国家 → 全球)、全球行动地图(国家项目清单 + 日期回放)、行动覆盖缺口分析与行动大类(环境类 / 能源类)。纯前端零依赖,双击 index.html 即用,离线可演示,中英双语。
+> 中文摘要:这是 Proof API 的可交互高保真原型——照片提交审核、本地启发式验证评分(端侧实测,演示规则)、重复检测拦截、结果总览分析,外加证据核查智能体;v0.2 新增组织分层分析(组织 → 城市 → 国家 → 全球)、全球行动地图(国家项目清单 + 日期回放)、行动覆盖缺口分析与行动大类(环境类 / 能源类)。纯前端零依赖,双击 index.html 即用,离线可演示,中英双语。
 
 ---
 
@@ -81,7 +81,7 @@ Checks: `node build/test-map-explorer.js` for scopes, coverage denominators and 
 The first tab (**提交验证 / Submit**) is the end-to-end flow Sadaf asked for:
 
 1. **Upload & claim** — drag-and-drop or file picker, live preview with file info (size / dimensions / type), claimed action type, location, optional submitter name, **submit-as toggle (individual / organisation) with an organisation picker** (choosing an org auto-fills its city; an **"Other"** option accepts a free-text org name → `org: 'custom:<name>'`, which becomes an *unregistered-organisation risk signal*), and an **action date** field (used by the action map's date replay). A **⚡ sample-photo button** generates a synthetic photo so the flow can be demoed with one click.
-2. **AI verification** — animated pipeline: ingest & fingerprint → 3-model verification → duplicate detection → receipt. **Real client-side computation**: SHA-256 of the file, **pHash-DCT 64-bit perceptual fingerprint** (32×32 grayscale → hand-written 2-D DCT → low-freq 8×8 minus DC → median threshold), Laplacian noise variance (authenticity heuristic), HSV color-profile cosine similarity (action-match **color-prior heuristic**, labelled as such), **ELA error-level analysis** (JPEG q90 re-encode → per-pixel diff heatmap + high-error share), **hand-written JPEG APP1/TIFF EXIF parsing** (GPS, Make/Model, Software, DateTimeOriginal), and a **C2PA/XMP provenance scan** of the file bytes. Geolocation is a **haversine distance from EXIF GPS to the claimed city** when GPS exists; otherwise a clearly-labelled demo-derived score.
+2. **Local heuristic checks** — animated pipeline: ingest & fingerprint → three on-device heuristic checks → duplicate detection → receipt. **Real client-side computation**: SHA-256 of the file, **pHash-DCT 64-bit perceptual fingerprint** (32×32 grayscale → hand-written 2-D DCT → low-freq 8×8 minus DC → median threshold), Laplacian noise variance (authenticity heuristic), HSV color-profile cosine similarity (action-match **color-prior heuristic**, labelled as such), **ELA error-level analysis** (JPEG q90 re-encode → per-pixel diff heatmap + high-error share), **hand-written JPEG APP1/TIFF EXIF parsing** (GPS, Make/Model, Software, DateTimeOriginal), and a **C2PA/XMP provenance scan** of the file bytes. Geolocation is a **haversine distance from EXIF GPS to the claimed city** when GPS exists; otherwise a clearly-labelled demo-derived score.
 3. **Result & flags** — verdict banner (verified / pending / rejected / duplicate-flagged), composite score ring, sub-model bars, and a flags panel: `DUP_EXACT`, `DUP_PHASH`, `AUTH_SMOOTH`, `ACTION_MISMATCH`, `GEO_LOW` (or "✓ no flags"). Rule: **any flag blocks auto-approval** — duplicate → flagged, score < 60 → rejected, otherwise flags force human review.
 4. **Receipt** — a printable verification receipt: submission ID, SHA-256 & pHash, claim details, pipeline checklist, model breakdown, and a status stamp. **🖨 Print** uses print CSS to output only the receipt.
 
@@ -92,7 +92,7 @@ Every submitted photo is registered into the live dataset: it appears in the Rev
 Citizens and field teams — **as individuals or on behalf of an organisation** — submit **photos as evidence of climate actions** (afforestation, rooftop solar, wetland restoration, EV charging, coastal cleanup, building retrofit), grouped into two large categories: **Environmental (环境类)** and **Energy (能源类)**. Every submission goes through an automated pipeline:
 
 ```
-Mobile submission → Ingestion → 3-model verification → Duplicate detection → Agent evidence check → Publish result
+Mobile submission → Ingestion → local heuristic checks → Duplicate detection → Agent evidence check → Publish result
 ```
 
 The dashboard covers the four review dimensions from our brief — **photo submissions, verification scores, duplicate flags, results** — plus the evidence-check agent slot, and the v0.2 planning layer: **hierarchy analytics (org → city → country → global)**, a **global action map** with per-country project lists and date replay, and **action coverage gap analysis**.
@@ -207,7 +207,7 @@ If the real API is synchronous-ish (send → poll → result), the UI can stream
 
 ## Photo credits (attribution)
 
-All demo photos are real photographs of climate actions, downloaded locally from **Wikimedia Commons** (public domain or CC-licensed, 800px thumbnails, stored in `assets/photos/`, re-fetchable via `node build/fetch-photos.js`). Full manifest: `build/photos-manifest.json`.
+All demo photos are real photographs of climate actions, downloaded locally from **Wikimedia Commons** (public domain or CC-licensed, 800px thumbnails, stored in `assets/photos/`, re-fetchable via `node build/fetch-photos.js`). Full manifest: `build/photos-manifest.json`. **The full attribution list is also shown in the in-app About tab** (open the app → About → "Photo credits & licenses") — no one needs to open the README at a booth.
 
 | File | Photo | Author | License |
 |---|---|---|---|
@@ -225,6 +225,10 @@ All demo photos are real photographs of climate actions, downloaded locally from
 | retrofit-02 | Installing Insulation & Roof Paneling | U.S. Navy / PO3 Matthew Noles | Public domain |
 
 Source pages are linked in `build/photos-manifest.json`. Uploaded user photos (submit tab) are displayed via a locally generated 240px thumbnail; duplicate-group members render the base photo with a slight zoom + filter to simulate crop/filter re-uploads. The SVG scene generator (`js/photos.js`) remains as an offline fallback for submissions without a photo.
+
+## License
+
+**This repository is released under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)** (see `LICENSE`). The demo photos mix public-domain works and CC BY / CC BY-SA 2.0–4.0 images, and the duplicate groups render cropped/filtered derivatives of them; share-alike obligations therefore cover the demo media and their derivatives. Releasing the repository as a whole under CC BY-SA 4.0 satisfies every upstream license (CC BY 3.0 and CC BY 4.0 material may be adapted into CC BY-SA 4.0; CC BY-SA 2.0/4.0 matches directly; public-domain works remain in the public domain). Attribution for every photo stays in the table above and in the in-app About tab. The team-authored source code is original and may be relicensed (e.g. MIT) by the authors on request.
 
 ## Design system
 
@@ -251,7 +255,7 @@ proof-api-dashboard/
                        14 orgs, 2 action categories, dup groups, hierarchy rollups,
                        gap analysis, map stats (deterministic seed)
   js/map-data.js       embedded world map SVG paths (generated by build/build-map.js
-                       from Natural Earth 50m, public domain; offline, no fetch)
+                       from Natural Earth 110m, public domain; offline, no fetch)
   js/map-explorer.js   interactive map, shared location/date filters, analytics,
                        global/local action lists and coverage opportunities
   js/photos.js         deterministic SVG photo-scene generator
@@ -261,7 +265,8 @@ proof-api-dashboard/
                        (real SHA-256 / pHash / noise / color, demo scoring; swap for real API)
   js/app.js            tabs, submit flow, queue + drawer, duplicates, analytics
                        (hierarchy + gaps), action map, evidence-check agent
-  build/build-map.js   map build: ne50m.geojson → js/map-data.js (Douglas-Peucker
-                       simplify 0.18°, y-flip, Antarctica dropped)
+  build/build-map.js   map build: ne110m.geojson → js/map-data.js (Douglas-Peucker
+                       simplify 0.05°, y-flip, Antarctica dropped; 110m keeps
+                       first paint fast on phones)
   build/test-data.js   dataset invariant checks (node) — includes map cross-check
 ```

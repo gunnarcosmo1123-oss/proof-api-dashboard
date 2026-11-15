@@ -1,18 +1,24 @@
 'use strict';
 /* ============================================================
-   构建脚本:ne50m.geojson(Natural Earth 50m,公共领域)
+   构建脚本:ne110m.geojson(Natural Earth 110m,公共领域)
    → js/map-data.js(嵌入式 SVG 路径,「行动地图」页签用)
-   用法: node build/build-map.js
+   用法: node build/build-map.js [输入 geojson 路径]
+        默认读取 build/ne110m.geojson(下载自
+        https://github.com/nvkelso/natural-earth-vector/geojson/)
 
    与 ClimateOS 同源管线:GeoJSON 每国坐标自包含、结构上不可能
-   交叉引用;路径经 Douglas-Peucker 简化(tol=0.15°,地图为背景
-   层,精度需求低)+ y 轴取负保证 SVG 北在上。
+   交叉引用;路径经 Douglas-Peucker 简化(tol=0.05°,110m 数据
+   顶点本就稀疏,大容差会吃掉海岸线;地图为背景层,精度需求低)
+   + y 轴取负保证 SVG 北在上。
    跳过南极洲与法属南半球领地以压缩体积并收紧视野。
+   110m 相比 50m 显著缩小首屏体积(手机扫码演示加载更快),
+   对演示受众无可见精度损失。
    ============================================================ */
 const fs = require('fs');
 const path = require('path');
 
-const gj = JSON.parse(fs.readFileSync(path.join(__dirname, 'ne50m.geojson'), 'utf8'));
+const INPUT = process.argv[2] ? path.resolve(process.argv[2]) : path.join(__dirname, 'ne110m.geojson');
+const gj = JSON.parse(fs.readFileSync(INPUT, 'utf8'));
 
 /* ---- 中文名(与 ClimateOS 同表) ---- */
 const ZH = {
@@ -86,7 +92,7 @@ function simplify(pts, tol){
 }
 /* 环 → 路径段(lon→x, -lat→y,北在上) */
 function ringToPath(ring){
-  const s = simplify(ring, 0.18);
+  const s = simplify(ring, 0.05);
   let d = 'M';
   for(let i = 0; i < s.length; i++){
     d += (i ? 'L' : '') + (+s[i][0]).toFixed(1) + ' ' + (+(-s[i][1])).toFixed(1);
@@ -111,7 +117,7 @@ gj.features.forEach(f => {
 /* 大面积先绘制(在下层),小面积后绘制(便于点击) */
 countries.sort((a, b) => b.d.length - a.d.length);
 
-const out = '/* 由 build/build-map.js 自动生成,数据源:Natural Earth 50m(公共领域),勿手改 */\n'
+const out = '/* 由 build/build-map.js 自动生成,数据源:Natural Earth 110m(公共领域),勿手改 */\n'
   + 'const MAP_DATA = ' + JSON.stringify({ countries }) + ';\n';
 
 fs.writeFileSync(path.join(__dirname, '..', 'js', 'map-data.js'), out);

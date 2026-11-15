@@ -8,3 +8,10 @@ COP31-SUGGESTIONS.md
 
 work/
 __pycache__/
+
+# 构建产物：Natural Earth 源数据与浏览器截图 / DOM 转储（可重建，勿入库）
+build/ne50m.geojson
+build/ne110m.geojson
+build/shots/
+build/shots-new/
+build/shots$t-zh.png

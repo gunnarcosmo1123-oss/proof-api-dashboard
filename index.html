@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <meta name="description" content="Proof API — AI climate-action verification dashboard (Team P05 prototype): photo submissions, 3-model verification scoring, duplicate interception, ELA/EXIF forensics, and an evidence-check agent. Zero dependencies, works offline. 照片提交、验证评分、重复检测、取证与证据核查智能体。">
+  <meta name="description" content="Proof API — AI climate-action verification dashboard (Team P05 prototype): photo submissions, on-device heuristic verification (demo rules, honestly labelled), duplicate interception, ELA/EXIF forensics, and an evidence-check agent. Zero dependencies, works offline. 照片提交、本地启发式验证评分、重复检测、取证与证据核查智能体。">
   <title>Proof API · Climate Action Verification Dashboard — Team P05 prototype</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Crect%20width='24'%20height='24'%20rx='5.5'%20fill='%232a78d6'/%3E%3Cpath%20d='M9%204.5%20L19%204.5%20A1.5%201.5%200%200%201%2020.5%206%20L20.5%2015%20A1.5%201.5%200%200%201%2019%2016.5%20L10%2016.5%20L7%2019.5%20L7%2016.5%20L5%2016.5%20A1.5%201.5%200%200%201%203.5%2015%20L3.5%206%20A1.5%201.5%200%200%201%205%204.5%20Z'%20fill='none'%20stroke='%23fff'%20stroke-width='1.5'%20stroke-linejoin='round'/%3E%3Cpath%20d='M12%208.6%20l1.7%203.5%203.8%200.5%20-2.7%202.7%200.6%203.8%20-3.4%20-1.8%20-3.4%201.8%200.6%20-3.8%20-2.7%20-2.7%203.8%20-0.5%20z'%20fill='%23fff'/%3E%3C/svg%3E">
   <link rel="manifest" href="manifest.webmanifest">
@@ -15,14 +15,14 @@
   <meta property="og:site_name" content="Proof API">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Proof API — AI Climate-Action Verification">
-  <meta property="og:description" content="Photo-based verification of climate actions: 3-model scoring, duplicate interception, ELA/EXIF forensics and an evidence-check agent. Team P05 interactive prototype — fully offline, zero dependencies.">
+  <meta property="og:description" content="Photo-based verification of climate actions: on-device heuristic scoring (demo), duplicate interception, ELA/EXIF forensics and an evidence-check agent. Team P05 interactive prototype — fully offline, zero dependencies.">
   <meta property="og:image" content="assets/og.png">
   <meta property="og:url" content="https://gunnarcosmo1123-oss.github.io/proof-api-dashboard/">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Proof API — AI Climate-Action Verification">
-  <meta name="twitter:description" content="Photo-based climate-action verification: 3-model scoring, duplicate interception, ELA/EXIF forensics, evidence-check agent. Team P05 prototype — offline, zero dependencies.">
+  <meta name="twitter:description" content="Photo-based climate-action verification: on-device heuristic scoring (demo), duplicate interception, ELA/EXIF forensics, evidence-check agent. Team P05 prototype — offline, zero dependencies.">
   <meta name="twitter:image" content="assets/og.png">
-  <link rel="stylesheet" href="css/style.css?v=20261115b">
+  <link rel="stylesheet" href="css/style.css?v=20261115c">
   <script>
   /* 语言三级回落(?lang= → localStorage → 浏览器语言),首帧前执行:国际评委不会看到中文首屏 */
   (function(){
@@ -75,6 +75,9 @@
 </head>
 <body>
 
+  <!-- 键盘用户:跳到主内容,越过顶栏与导航 -->
+  <a class="skip-link" href="#main-content">跳到主内容 / Skip to main content</a>
+
   <!-- 离线静态兜底(?offline=1 或资源加载失败时显示;零脚本依赖) -->
   <div id="offline-fallback" hidden style="max-width:640px;margin:64px auto;padding:34px 30px;font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;background:#ffffff;border:1px solid #e2e6ea;border-radius:16px;text-align:center;box-shadow:0 12px 34px rgba(16,24,40,0.10)">
     <div style="font-size:44px">◆</div>
@@ -98,7 +101,7 @@
       </div>
       <h2>Proof API</h2>
       <div class="intro-bar"><i id="intro-bar"></i></div>
-      <p id="intro-sub">正在初始化验证模型与证据核查智能体… / Initializing verification models &amp; evidence-check agent…</p>
+      <p id="intro-sub">正在初始化本地验证引擎与证据核查智能体… / Initializing the local verification engine &amp; evidence-check agent…</p>
       <p id="intro-hint" class="intro-hint">点击任意位置跳过 · Click anywhere to skip</p>
     </div>
   </div>
@@ -118,7 +121,7 @@
       </div>
     </div>
     <div class="topbar-right">
-      <span id="top-ai"><i class="pulse"></i>AI 引擎在线</span>
+      <span id="top-ai"><i class="pulse"></i>本地启发式引擎 · 演示</span>
       <span class="muted" id="top-ver">数据版本 2026.11 · 演示数据</span>
       <button id="lang-toggle" class="btn btn-lang" type="button" title="Switch language / 切换语言" aria-label="Switch language / 切换语言"><span class="lg-ic">🌐</span><span data-l="zh">中文</span><i class="lg-sep">/</i><span data-l="en">EN</span></button>
     </div>
@@ -136,7 +139,7 @@
     <button data-tab="about"></button>
   </nav>
 
-  <main>
+  <main id="main-content">
     <section id="tab-submit" class="tab"></section>
     <section id="tab-overview" class="tab active"></section>
     <section id="tab-queue" class="tab"></section>
@@ -151,20 +154,20 @@
     <span id="footer-1">Proof API — AI 气候行动验证系统 · Team P05 高保真原型</span><br>
     <span id="footer-2">本原型全部数据为演示用模拟数据,不包含真实用户提交;验证评分由演示模型生成,不代表真实模型能力</span><br>
     <span id="footer-3">零依赖 · 离线可用 · 图表遵循专业数据可视化规范(色盲安全配色 · 可访问性)</span><br>
-    <span id="footer-4">演示照片素材来自 Wikimedia Commons(公有领域 / CC 许可),出处与作者详见 README 致谢清单</span>
+    <span id="footer-4">演示照片素材来自 Wikimedia Commons(公有领域 / CC 许可),出处、作者与许可详见「关于」页;仓库整体以 CC BY-SA 4.0 发布</span>
   </footer>
 
-  <script src="js/data.js?v=20261115b"></script>
-  <script src="js/photos.js?v=20261115b"></script>
-  <script src="js/map-data.js?v=20261115b"></script>
-  <script src="js/i18n.js?v=20261115b"></script>
-  <script src="js/charts.js?v=20261115b"></script>
-  <script src="js/api.js?v=20261115b"></script>
-  <script src="js/model-config.js?v=20261115b"></script>
-  <script src="js/ndvi-data.js?v=20261115b"></script>
-  <script src="js/evidence.js?v=20261115b"></script>
-  <script src="js/map-explorer.js?v=20261115b"></script>
-  <script src="js/app.js?v=20261115b"></script>
+  <script src="js/data.js?v=20261115c"></script>
+  <script src="js/photos.js?v=20261115c"></script>
+  <script src="js/map-data.js?v=20261115c"></script>
+  <script src="js/i18n.js?v=20261115c"></script>
+  <script src="js/charts.js?v=20261115c"></script>
+  <script src="js/api.js?v=20261115c"></script>
+  <script src="js/model-config.js?v=20261115c"></script>
+  <script src="js/ndvi-data.js?v=20261115c"></script>
+  <script src="js/evidence.js?v=20261115c"></script>
+  <script src="js/map-explorer.js?v=20261115c"></script>
+  <script src="js/app.js?v=20261115c"></script>
   <script>
   window.__bootOK = true;
   </script>

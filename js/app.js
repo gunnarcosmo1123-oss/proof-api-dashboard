@@ -1992,9 +1992,47 @@ function buildSubmit(){
    导航 / 语言 / 启动
    ============================================================ */
 function switchTab(id){
-  $$('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+  $$('.tabs button').forEach(b => {
+    const on = b.dataset.tab === id;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', String(on));
+    b.tabIndex = on ? 0 : -1; /* roving tabindex:箭号键在页签间移动 */
+  });
   $$('.tab').forEach(s => s.classList.toggle('active', s.id === 'tab-' + id));
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* 页签可访问性:WAI-ARIA tablist/tab/tabpanel + 箭号键导航(键盘可完整遍历八个视图) */
+function setupTabA11y(){
+  const list = $('#tabs');
+  if(!list) return;
+  list.setAttribute('role', 'tablist');
+  list.setAttribute('aria-label', t('a11y.tabs'));
+  const buttons = $$('.tabs button');
+  buttons.forEach((b, i) => {
+    b.setAttribute('role', 'tab');
+    b.id = 'tabbtn-' + b.dataset.tab;
+    b.setAttribute('aria-controls', 'tab-' + b.dataset.tab);
+    const on = b.classList.contains('active');
+    b.setAttribute('aria-selected', String(on));
+    b.tabIndex = on ? 0 : -1;
+  });
+  $$('.tab').forEach(s => {
+    s.setAttribute('role', 'tabpanel');
+    s.setAttribute('aria-labelledby', 'tabbtn-' + s.id.slice(4));
+  });
+  list.addEventListener('keydown', e => {
+    if(!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    const idx = buttons.findIndex(b => document.activeElement === b);
+    if(idx < 0){ buttons.find(b => b.tabIndex === 0).focus(); return; }
+    let next;
+    if(e.key === 'Home') next = 0;
+    else if(e.key === 'End') next = buttons.length - 1;
+    else next = (idx + (e.key === 'ArrowRight' ? 1 : buttons.length - 1)) % buttons.length;
+    buttons[next].focus();
+    switchTab(buttons[next].dataset.tab);
+  });
 }
 
 /* ============================================================
@@ -2103,6 +2141,10 @@ function buildAbout(){
     table.appendChild(row);
   });
   ph.body.appendChild(table);
+  const lic = document.createElement('p');
+  lic.className = 'muted-text about-license';
+  lic.textContent = t('about.photos.license');
+  ph.body.appendChild(lic);
 }
 
 /* ============================================================
@@ -2267,6 +2309,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   restoreSession(); /* 会话提交并入数据集(队列/KPI 联动) */
   applyStaticLabels();
+  setupTabA11y();
   buildAll();
   buildTour();
 
