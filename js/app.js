@@ -30,7 +30,7 @@ function orgTag(key){
   const custom = !!(key && key.startsWith('custom:'));
   const b = document.createElement('span');
   b.className = 'orgtag' + (custom ? ' orgtag-custom' : '');
-  b.textContent = (custom ? '🏢 ' : (o ? (TYPE_ICONS[o.type] || '🏢') + ' ' : '🙂 ')) + orgName(key);
+  b.append(ProofTools.icon(custom || o?.type === 'company' ? 'building' : o ? 'community' : 'user'), document.createTextNode(orgName(key)));
   if(custom){
     const badge = document.createElement('i');
     badge.className = 'orgtag-badge';
@@ -89,7 +89,7 @@ function actTag(key){
   const a = ACT[key];
   const b = document.createElement('span');
   b.className = 'cat';
-  b.textContent = a.icon + ' ' + t('act.' + key);
+  b.append(ProofTools.icon(key), document.createTextNode(t('act.' + key)));
   b.style.color = a.color;
   b.style.background = a.color + '14';
   b.style.borderColor = a.color + '4d';
@@ -443,14 +443,22 @@ function buildQueue(){
     });
   }
 
-  function setVerdict(id, st){
+  function setVerdict(id, st, review){
     const s = PROOF.byId(id);
+    if(!s) return;
+    if(!review){ ProofExperience.review(id, st); return; }
+    ProofCommunity.recordReview(s, { ...review, decision: st });
     s.status = st;
+    saveRegistry();
+    ProofExperience.buildHome();
+    if(ProofExperience.storyId) ProofExperience.renderStory();
+    if(window.__refreshSubmitResult) window.__refreshSubmitResult();
     closeDrawer();
     renderQueue();
     if(window.__refreshOverview) window.__refreshOverview();
     if(window.__renderMap) window.__renderMap();
     if(window.__renderAnalytics) window.__renderAnalytics();
+    if(window.__renderRegions) window.__renderRegions();
   }
   window.__setVerdict = setVerdict;
   window.__renderQueue = renderQueue;
@@ -509,6 +517,12 @@ function openDrawer(id){
     tags.appendChild(d);
   }
   pn.appendChild(tags);
+  const storyButton = document.createElement('button');
+  storyButton.className = 'btn btn-ghost';
+  storyButton.textContent = ProofExperience.L('Open project story →', '打开项目故事 →');
+  storyButton.addEventListener('click', () => { closeDrawer(); ProofExperience.openStory(s.projectId || 'record:' + s.id); });
+  pn.appendChild(storyButton);
+  ProofExperience.stages(pn, s);
 
   const meta = document.createElement('div');
   meta.className = 'summary-meta';
@@ -740,6 +754,7 @@ function buildDup(){
 let HIER = { level: 0, country: null, city: null, org: null };
 let GAP_SCOPE = 'global';
 let HIER_DATE = null;
+let HIER_ACTION = null;
 let GAP_CITY = null;
 
 function buildAnalytics(){
@@ -761,16 +776,16 @@ function buildAnalytics(){
     const period = document.createElement('div');
     period.className = 'hier-period';
     const dateLabel = document.createElement('span');
-    dateLabel.textContent = t('mapx.period') + ': ' + (HIER_DATE || t('mapx.allDates'));
-    const dateInput = document.createElement('input');
-    dateInput.type = 'date'; dateInput.className = 'txt-in'; dateInput.value = HIER_DATE || '';
-    dateInput.setAttribute('aria-label', t('mapx.analyticsDate'));
-    dateInput.addEventListener('change', () => { HIER_DATE = dateInput.value || null; renderHier(); renderGap(); });
-    const clearDate = document.createElement('button');
-    clearDate.className = 'btn btn-ghost'; clearDate.textContent = t('mapx.allDates');
-    clearDate.addEventListener('click', () => { HIER_DATE = null; renderHier(); renderGap(); });
-    period.append(dateLabel, dateInput, clearDate); hierBody.appendChild(period);
-    const periodSubs = PROOF.scopeSubs(null, null, null, HIER_DATE);
+    dateLabel.textContent = t('mapx.period') + ': ' + ProofPeriod.label(HIER_DATE || {}, LANG === 'zh');
+    const dateControls = ProofTools.periodControls(HIER_DATE || {}, value => { HIER_DATE = value; renderHier(); renderGap(); }, { exactLabel: t('mapx.analyticsDate') });
+    period.append(dateLabel, dateControls.root); hierBody.appendChild(period);
+    if(HIER_ACTION){
+      const action = document.createElement('button'); action.className = 'chip active';
+      action.textContent = t('act.' + HIER_ACTION) + ' ×';
+      action.addEventListener('click', () => { HIER_ACTION = null; renderHier(); });
+      hierBody.appendChild(action);
+    }
+    const periodSubs = PROOF.scopeSubs(null, null, null, HIER_DATE).filter(s => !HIER_ACTION || s.action === HIER_ACTION);
     /* 面包屑 */
     const crumb = document.createElement('div');
     crumb.className = 'hier-crumb';
@@ -820,7 +835,7 @@ function buildAnalytics(){
     }
     if(rows === null){
       /* 组织层:直接列出该组织的提交 */
-      const subs = PROOF.scopeSubs(HIER.country, HIER.city, HIER.org, HIER_DATE);
+      const subs = PROOF.scopeSubs(HIER.country, HIER.city, HIER.org, HIER_DATE).filter(s => !HIER_ACTION || s.action === HIER_ACTION);
       if(!subs.length){
         const p = document.createElement('p');
         p.className = 'muted-text';
@@ -860,7 +875,8 @@ function buildAnalytics(){
 
   window.__openMapAnalytics = state => {
     HIER = { level: state.city != null ? 2 : (state.country ? 1 : 0), country: state.country, city: state.city, org: null };
-    HIER_DATE = state.date;
+    HIER_DATE = ProofPeriod.clean(state);
+    HIER_ACTION = state.action || null;
     GAP_SCOPE = state.country || 'global';
     GAP_CITY = state.city;
     renderHier(); renderGap();
@@ -873,7 +889,7 @@ function buildAnalytics(){
     const gapSubs = PROOF.scopeSubs(null, GAP_CITY, null, HIER_DATE);
     const scopes = GAP_CITY != null ? [{ key: GAP_SCOPE }] : PROOF.gapScopes(gapSubs);
     const period = document.createElement('p');
-    period.className = 'qc-hint'; period.textContent = t('mapx.period') + ': ' + (HIER_DATE || t('mapx.allDates'));
+    period.className = 'qc-hint'; period.textContent = t('mapx.period') + ': ' + ProofPeriod.label(HIER_DATE || {}, LANG === 'zh');
     gapBody.appendChild(period);
     const row = document.createElement('div');
     row.className = 'chip-row';
@@ -1391,12 +1407,12 @@ function buildAgent(){
 /* ============================================================
    提交验证(闭环:上传 → 验证 → 结果与凭据)
    ============================================================ */
-let SUBMIT = { stage: 1, file: null, url: null, dims: null, action: null, city: 0, name: '', orgMode: 'org', org: 'org-gbg', orgCustom: '', orgType: 'community', date: null, result: null };
+let SUBMIT = { stage: 1, file: null, url: null, dims: null, action: null, city: 0, name: '', orgMode: 'org', org: 'org-gbg', orgCustom: '', orgType: 'community', date: null, projectId: null, result: null };
 
 function buildSubmit(){
   const sec = $('#tab-submit');
   sec.innerHTML = '';
-  SUBMIT = { stage: 1, file: null, url: null, dims: null, action: null, city: 0, name: '', orgMode: 'org', org: 'org-gbg', orgCustom: '', orgType: 'community', date: null, result: null };
+  /* Preserve the in-progress local file and form when switching languages. */
 
   /* 步骤条 */
   const stepper = document.createElement('div');
@@ -1424,6 +1440,13 @@ function buildSubmit(){
     });
     renderSessionList();
   };
+  window.__renderSubmit = renderStage;
+  window.__submitFailure = err => {
+    SUBMIT.stage = 1; renderStage();
+    const message = document.createElement('p'); message.className = 'pt-error'; message.setAttribute('role', 'alert');
+    message.textContent = ProofTools.L('Local checks failed: ', '本地检查失败：') + (err?.message || 'verify failed');
+    body.prepend(message);
+  };
 
   function setFile(f){
     SUBMIT.file = f;
@@ -1431,7 +1454,7 @@ function buildSubmit(){
     SUBMIT.url = URL.createObjectURL(f);
     SUBMIT.dims = null;
     const img = new Image();
-    img.onload = () => { SUBMIT.dims = [img.naturalWidth, img.naturalHeight]; renderStage(); };
+    img.onload = () => { if(SUBMIT.file !== f) return; SUBMIT.dims = [img.naturalWidth, img.naturalHeight]; window.__renderSubmit(); };
     img.src = SUBMIT.url;
   }
 
@@ -1482,7 +1505,8 @@ function buildSubmit(){
     PROOF.actions.forEach(a => {
       const b = document.createElement('button');
       b.className = 'chip' + (SUBMIT.action === a.key ? ' active' : '');
-      b.innerHTML = '<span>' + a.icon + '</span>' + t('act.' + a.key);
+      b.disabled = !!SUBMIT.projectId && SUBMIT.action !== a.key;
+      b.append(ProofTools.icon(a.key), document.createTextNode(t('act.' + a.key)));
       b.addEventListener('click', () => { SUBMIT.action = a.key; renderStage(); });
       aRow.appendChild(b);
     });
@@ -1500,6 +1524,7 @@ function buildSubmit(){
       sel.appendChild(o);
     });
     sel.value = SUBMIT.city;
+    sel.disabled = !!SUBMIT.projectId;
     sel.addEventListener('change', () => { SUBMIT.city = +sel.value; });
     fRow2.appendChild(sel);
     fRow2.insertAdjacentHTML('beforeend', '<span class="filter-label">' + t('submit.claim.name') + '</span>');
@@ -1605,6 +1630,7 @@ function buildSubmit(){
     dt.type = 'date';
     dt.className = 'txt-in';
     dt.value = SUBMIT.date || dateKey(new Date());
+    SUBMIT.date = dt.value;
     dt.addEventListener('change', () => { SUBMIT.date = dt.value || null; });
     fRow5.appendChild(dt);
     const dn = document.createElement('span');
@@ -1614,6 +1640,12 @@ function buildSubmit(){
     fRow5.appendChild(dn);
     form.appendChild(fRow5);
     body.appendChild(form);
+    ProofExperience.submissionProject(body, SUBMIT, renderStage);
+    ProofCapture.render(body, () => SUBMIT, saved => {
+      if(SUBMIT.url) URL.revokeObjectURL(SUBMIT.url);
+      SUBMIT = { stage: 1, file: null, url: null, dims: null, action: null, city: 0, name: '', orgMode: 'ind', org: null, orgCustom: '', orgType: 'community', date: null, projectId: null, ...saved, result: null };
+      setFile(saved.file);
+    }, setFile);
 
     /* 操作 */
     const actions = document.createElement('div');
@@ -1654,13 +1686,15 @@ function buildSubmit(){
     if(!SUBMIT.file || !SUBMIT.action) return;
     if(SUBMIT.orgMode === 'org' && !SUBMIT.org) return;
     if(SUBMIT.org === '__custom' && SUBMIT.orgCustom.trim().length < 2) return;
+    const submittedState = SUBMIT;
     SUBMIT.stage = 2;
     renderStage();
     const payload = {
       file: SUBMIT.file, action: SUBMIT.action, city: SUBMIT.city, submitter: SUBMIT.name,
       org: SUBMIT.orgMode === 'org' ? (SUBMIT.org === '__custom' ? 'custom:' + SUBMIT.orgCustom.trim() : SUBMIT.org) : null,
       orgType: SUBMIT.orgMode === 'org' && SUBMIT.org === '__custom' ? SUBMIT.orgType : null,
-      date: SUBMIT.date || null
+      date: SUBMIT.date || null, projectId: SUBMIT.projectId || null, deviceLocation: SUBMIT.deviceLocation || null,
+      actionEvidence: SUBMIT.actionEvidence?.action === SUBMIT.action ? SUBMIT.actionEvidence.values : {}
     };
     const rows = body.querySelectorAll('.pipe-run .row');
     const stagesDone = [false, false, false, false];
@@ -1675,22 +1709,23 @@ function buildSubmit(){
     proofApiSubmit(payload).then(r => { result = r; promiseDone = true; maybeFinish(); })
       .catch(err => {
         timers.forEach(clearTimeout);
-        body.innerHTML = '<p class="verdict-why" style="padding:10px 2px">⚠ ' + (err && err.message ? err.message : 'verify failed') + '</p>' +
-          '<button class="btn btn-ghost" type="button">← ' + t('submit.step1') + '</button>';
-        body.querySelector('button').addEventListener('click', () => { SUBMIT.stage = 1; renderStage(); });
+        if(SUBMIT === submittedState) window.__submitFailure(err);
       });
     function maybeFinish(){
       if(promiseDone && stagesDone.every(Boolean)){
         timers.forEach(clearTimeout);
-        SUBMIT.result = result;
         ProofEvidence.remember(result.submission.id, payload.file);
-        SUBMIT.stage = 3;
-        renderStage();
+        ProofExperience.buildHome();
+        if(ProofExperience.storyId) ProofExperience.renderStory();
+        if(SUBMIT === submittedState){
+          SUBMIT.result = result; SUBMIT.stage = 3; window.__renderSubmit();
+        }
         if(window.__refreshOverview) window.__refreshOverview();
         if(window.__renderQueue) window.__renderQueue();
         if(window.__renderDup) window.__renderDup();
         if(window.__renderMap) window.__renderMap();
         if(window.__renderAnalytics) window.__renderAnalytics();
+        if(window.__renderRegions) window.__renderRegions();
       }
     }
   }
@@ -1700,14 +1735,24 @@ function buildSubmit(){
     const r = SUBMIT.result;
     const s = r.submission, v = r.verification;
     const st = PROOF.statuses[s.status];
+    const humanReview = ProofCommunity.reviewState(s).human;
+    const verdictMessage = humanReview
+      ? ProofExperience.L('A local review decision was recorded. The original automated findings remain below; this is not independent certification.', '已记录本地人工复核决定。原始自动检查结果仍保留在下方；这并非独立认证。')
+      : t('submit.verdict.' + s.status);
 
     const banner = document.createElement('div');
     banner.className = 'verdict-banner vb-' + s.status;
     banner.innerHTML = '<div class="vb-icon">' + st.icon + '</div>' +
       '<div class="vb-body"><b>' + t('submit.result.title') + ' · ' + t('status.' + s.status) + '</b>' +
-      '<p>' + t('submit.verdict.' + s.status) + '</p></div>' +
+      '<p>' + verdictMessage + '</p></div>' +
       '<div class="vb-id">' + s.id + '</div>';
     body.appendChild(banner);
+    ProofExperience.stages(body, s);
+    const storyButton = document.createElement('button');
+    storyButton.type = 'button'; storyButton.className = 'btn btn-ghost';
+    storyButton.textContent = ProofExperience.L('Open project story →', '打开项目故事 →');
+    storyButton.addEventListener('click', () => ProofExperience.openStory(s.projectId || 'record:' + s.id));
+    body.appendChild(storyButton);
 
     const grid = document.createElement('div');
     grid.className = 'submit-grid';
@@ -1889,7 +1934,7 @@ function buildSubmit(){
     again.textContent = t('submit.receipt.again');
     again.addEventListener('click', () => {
       /* orgCustom/orgType 必须随状态回填,否则"再提交一次"会丢自定义组织名 */
-      SUBMIT = { stage: 1, file: null, url: null, dims: null, action: null, city: SUBMIT.city, name: SUBMIT.name, orgMode: SUBMIT.orgMode, org: SUBMIT.org, orgCustom: SUBMIT.orgCustom, orgType: SUBMIT.orgType, date: SUBMIT.date, result: null };
+      SUBMIT = { stage: 1, file: null, url: null, dims: null, action: SUBMIT.projectId ? SUBMIT.action : null, projectId: SUBMIT.projectId || null, city: SUBMIT.city, name: SUBMIT.name, orgMode: SUBMIT.orgMode, org: SUBMIT.org, orgCustom: SUBMIT.orgCustom, orgType: SUBMIT.orgType, date: SUBMIT.date, result: null };
       renderStage();
     });
     const toQueue = document.createElement('button');
@@ -1978,6 +2023,12 @@ function buildSubmit(){
   }
 
   /* 示例照片一键演示 */
+  window.__refreshSubmitResult = () => { if(SUBMIT.stage === 3) renderStage(); };
+  window.__startProjectSubmission = project => {
+    if(SUBMIT.url) URL.revokeObjectURL(SUBMIT.url);
+    SUBMIT = { stage: 1, file: null, url: null, dims: null, action: project.action, city: project.city, name: '', orgMode: 'ind', org: null, orgCustom: '', orgType: 'community', date: project.date, projectId: project.id, result: null };
+    renderStage(); switchTab('submit'); window.scrollTo({ top: 0, behavior: 'instant' });
+  };
   window.__submitFile = async f => { setFile(f); setTimeout(doSubmit, 150); };
   window.__demoSubmit = async () => {
     if(!SUBMIT.action) SUBMIT.action = 'afforest';
@@ -1991,47 +2042,58 @@ function buildSubmit(){
 /* ============================================================
    导航 / 语言 / 启动
    ============================================================ */
-function switchTab(id){
+function switchTab(id, preserveUrl = false){
+  if(!document.getElementById('tab-' + id)) return;
+  if(id !== 'map') MAP_PLAYER?.pause();
   $$('.tabs button').forEach(b => {
     const on = b.dataset.tab === id;
     b.classList.toggle('active', on);
     b.setAttribute('aria-selected', String(on));
-    b.tabIndex = on ? 0 : -1; /* roving tabindex:箭号键在页签间移动 */
+    b.tabIndex = on && !b.hidden ? 0 : -1; /* roving tabindex:隐藏页签不参与键盘遍历 */
   });
   $$('.tab').forEach(s => s.classList.toggle('active', s.id === 'tab-' + id));
+  if(!preserveUrl)try {
+    const url = new URL(location.href); url.searchParams.set('tab', id);
+    if(id === 'story' && ProofExperience.storyId) url.searchParams.set('story', ProofExperience.storyId);
+    else url.searchParams.delete('story');
+    history.replaceState({}, '', url);
+  } catch(e) {}
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-/* 页签可访问性:WAI-ARIA tablist/tab/tabpanel + 箭号键导航(键盘可完整遍历八个视图) */
+/* 页签可访问性:WAI-ARIA tablist/tab/tabpanel + 箭号键导航(自动适配新增视图,跳过隐藏页签) */
 function setupTabA11y(){
   const list = $('#tabs');
   if(!list) return;
   list.setAttribute('role', 'tablist');
   list.setAttribute('aria-label', t('a11y.tabs'));
   const buttons = $$('.tabs button');
-  buttons.forEach((b, i) => {
+  buttons.forEach(b => {
     b.setAttribute('role', 'tab');
     b.id = 'tabbtn-' + b.dataset.tab;
     b.setAttribute('aria-controls', 'tab-' + b.dataset.tab);
     const on = b.classList.contains('active');
     b.setAttribute('aria-selected', String(on));
-    b.tabIndex = on ? 0 : -1;
+    b.tabIndex = on && !b.hidden ? 0 : -1;
   });
   $$('.tab').forEach(s => {
     s.setAttribute('role', 'tabpanel');
     s.setAttribute('aria-labelledby', 'tabbtn-' + s.id.slice(4));
   });
+  /* 每次按键重新取可见页签:story 等动态显示的视图也能参与遍历 */
   list.addEventListener('keydown', e => {
     if(!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+    const items = buttons.filter(b => !b.hidden);
+    if(!items.length) return;
     e.preventDefault();
-    const idx = buttons.findIndex(b => document.activeElement === b);
-    if(idx < 0){ buttons.find(b => b.tabIndex === 0).focus(); return; }
+    const idx = items.findIndex(b => document.activeElement === b);
+    if(idx < 0){ (items.find(b => b.tabIndex === 0) || items[0]).focus(); return; }
     let next;
     if(e.key === 'Home') next = 0;
-    else if(e.key === 'End') next = buttons.length - 1;
-    else next = (idx + (e.key === 'ArrowRight' ? 1 : buttons.length - 1)) % buttons.length;
-    buttons[next].focus();
-    switchTab(buttons[next].dataset.tab);
+    else if(e.key === 'End') next = items.length - 1;
+    else next = (idx + (e.key === 'ArrowRight' ? 1 : items.length - 1)) % items.length;
+    items[next].focus();
+    switchTab(items[next].dataset.tab);
   });
 }
 
@@ -2267,13 +2329,7 @@ function applyStaticLabels(){
   const lg = $('#lang-toggle');
   if(lg) lg.querySelectorAll('[data-l]').forEach(sp => sp.classList.toggle('active', sp.dataset.l === LANG));
   document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : 'en';
-  $$('.tabs button').forEach(b => b.textContent = t('nav.' + b.dataset.tab));
-  $$('.tabs button').forEach(b => {
-    const dot = document.createElement('i');
-    dot.className = 'tab-dot';
-    dot.style.background = { submit: '#199e70', overview: '#2a78d6', queue: '#eb6834', dup: '#ec835a', analytics: '#1baf7a', map: '#0e9aa7', agent: '#6250d6', about: '#8e44ad' }[b.dataset.tab];
-    b.prepend(dot);
-  });
+  $$('.tabs button').forEach(b => b.replaceChildren(ProofTools.icon(b.dataset.tab), document.createTextNode(t('nav.' + b.dataset.tab))));
   $('#footer-1').textContent = t('footer.1');
   $('#footer-2').textContent = t('footer.2');
   $('#footer-3').textContent = t('footer.3');
@@ -2285,12 +2341,16 @@ function applyStaticLabels(){
 }
 
 function buildAll(){
+  ProofExperience.buildHome();
+  ProofExperience.buildGuides();
+  ProofExperience.renderStory();
   buildSubmit();
   buildOverview();
   buildQueue();
   buildDup();
   buildAnalytics();
   buildMap();
+  buildRegions();
   buildAgent();
   buildAbout();
 }
@@ -2308,10 +2368,21 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch(e) {}
 
   restoreSession(); /* 会话提交并入数据集(队列/KPI 联动) */
+  ProofCommunity.applyReviews();
+  const mapLink = ProofInsights.readMapLink(location.href);
+  if(mapLink){ MAP_STATE = mapLink.state; MAP_VIEW_MODE = mapLink.mode; }
   applyStaticLabels();
   setupTabA11y();
   buildAll();
   buildTour();
+
+  window.addEventListener('popstate', () => {
+    const query = new URLSearchParams(location.search);
+    const mapLink = ProofInsights.readMapLink(location.href);
+    if(mapLink){ MAP_STATE = mapLink.state; MAP_VIEW_MODE = mapLink.mode; window.__renderMap?.(); }
+    if(query.get('story')) ProofExperience.restoreStory(query.get('story'));
+    else switchTab(query.get('tab') || 'home', true);
+  });
 
   $$('.tabs button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
   $('#lang-toggle').addEventListener('click', () => {
@@ -2357,16 +2428,9 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => window.__demoSubmit && window.__demoSubmit(), 400);
       if(qp.get('demo-submit') === '2') setTimeout(() => window.__demoSubmit && window.__demoSubmit(), 7000);
     }
-    /* ?map-country=Malaysia[&map-date=2026-11-10] 预选行动地图国家/日期(调试/截图用) */
-    const mc = qp.get('map-country');
-    const md = qp.get('map-date');
-    if(mc || md){
+    if(qp.get('story')){ ProofExperience.restoreStory(qp.get('story')); return; }
+    if(mapLink && (!tab || tab === 'map')){
       switchTab('map', true);
-      setTimeout(() => {
-        if(mc) MAP_STATE = { country: mc, city: null, date: md || null };
-        else MAP_STATE.date = md;
-        if(window.__renderMap) window.__renderMap();
-      }, 350);
     }
   } catch(e) {}
 });

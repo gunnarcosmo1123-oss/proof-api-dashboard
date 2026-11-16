@@ -26,22 +26,33 @@ window.ProofEvidence = (() => {
     return registered ? digest === registered.hash : digest.slice(0, 16) === s.hash;
   }
 
-  async function prepareOffline(){
+  async function prepareOffline(options = {}){
     if(!/^https?:$/.test(location.protocol) || !isSecureContext || !('caches' in window) || !('serviceWorker' in navigator)){
-      throw new Error(tx('Model caching needs HTTPS or localhost and Cache API support. The offline heuristics remain available (including file://).', '模型缓存需要 HTTPS 或 localhost 以及 Cache API 支持。离线启发式仍可使用（包括 file://）。'));
+      throw new Error(tx('Offline app/model caching needs HTTPS or localhost and Cache API support. The offline heuristics remain available (including file://).', '应用/模型离线缓存需要 HTTPS 或 localhost 以及 Cache API 支持。离线启发式仍可使用（包括 file://）。'));
     }
-    const registration = await navigator.serviceWorker.register('sw.js');
+    const registration = await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });
+    const installing = registration.installing || registration.waiting;
+    if(installing && installing.state !== 'activated') await new Promise((resolve,reject)=>{
+      const timer = setTimeout(()=>{installing.removeEventListener('statechange',check);reject(new Error('Offline worker activation timed out. Please retry.'));},30000);
+      function check(){
+        if(installing.state === 'activated' || installing.state === 'redundant'){
+          clearTimeout(timer);installing.removeEventListener('statechange',check);
+          if(installing.state === 'activated')resolve();else reject(new Error('Offline worker could not be installed.'));
+        }
+      }
+      installing.addEventListener('statechange',check);check();
+    });
     await navigator.serviceWorker.ready;
     const worker = registration.active;
     if(!worker) throw new Error('The offline service worker could not start.');
     await new Promise((resolve, reject) => {
       const channel = new MessageChannel();
-      const timer = setTimeout(() => reject(new Error('Offline asset caching timed out. Please retry.')), 90000);
+      const timer = setTimeout(() => {channel.port1.close();reject(new Error('Offline asset caching timed out. Please retry.'));}, 90000);
       channel.port1.onmessage = ({ data }) => {
         clearTimeout(timer); channel.port1.close();
         if(data.ok) resolve(); else reject(new Error('Offline asset caching failed: ' + data.reason));
       };
-      worker.postMessage('prepare-offline', [channel.port2]);
+      worker.postMessage(options.appOnly ? { type: 'prepare-offline', appOnly: true } : 'prepare-offline', [channel.port2]);
     });
   }
 
@@ -224,7 +235,7 @@ window.ProofEvidence = (() => {
 
   function lineChart(parent, points, options){
     const ns='http://www.w3.org/2000/svg', svg=document.createElementNS(ns,'svg');
-    svg.setAttribute('viewBox','0 0 620 205'); svg.setAttribute('role','img');
+    svg.setAttribute('viewBox','0 0 620 205'); svg.setAttribute('role',options.onSelect?'group':'img');
     svg.setAttribute('aria-label',options.title); svg.classList.add('evidence-chart');
     const mk=(tag,attrs,text)=>{const n=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,v));if(text!=null)n.textContent=text;svg.appendChild(n);return n;};
     const times=points.map(p=>Date.parse(p.date+'T00:00:00Z')), min=Math.min(...times), max=Math.max(...times);
@@ -234,12 +245,26 @@ window.ProofEvidence = (() => {
       mk('text',{x:40,y:py(v)+4,'text-anchor':'end',fill:'#596879','font-size':11},options.format(v));
     });
     mk('polyline',{points:points.map((p,i)=>px(i)+','+py(p.value)).join(' '),fill:'none',stroke:'#16805c','stroke-width':2,'stroke-dasharray':options.dashed?'5 4':'none'});
+    const dots=[];
+    function select(index){
+      dots.forEach((dot,i)=>{dot.setAttribute('aria-pressed',String(i===index));dot.classList.toggle('is-selected',i===index);});
+      options.onSelect?.(points[index],index);
+    }
     points.forEach((p,i)=>{
-      const dot=mk('circle',{cx:px(i),cy:py(p.value),r:4,fill:'#16805c'});
+      const dot=mk('circle',{cx:px(i),cy:py(p.value),r:options.onSelect?7:4,fill:'#16805c'});
+      dots.push(dot);
+      if(options.onSelect){
+        dot.setAttribute('tabindex','0');dot.setAttribute('role','button');
+        dot.setAttribute('aria-label',p.date+' · '+options.format(p.value));
+        dot.classList.add('ndvi-point');
+        dot.addEventListener('click',()=>select(i));
+        dot.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(i);}});
+      }
       const title=document.createElementNS(ns,'title');title.textContent=p.date+' · '+options.format(p.value);dot.appendChild(title);
     });
     [0,points.length-1].forEach(i=>mk('text',{x:px(i),y:185,'text-anchor':i?'end':'start',fill:'#596879','font-size':11},points[i].date));
     parent.appendChild(svg);
+    return {select};
   }
 
   function pairPanel(parent, result){
@@ -273,6 +298,14 @@ window.ProofEvidence = (() => {
       date.addEventListener('change',()=>{state[key+'Date']=date.value;delete state.measurement;output.replaceChildren();});
       label.appendChild(date);cell.appendChild(label);grid.appendChild(cell);
     });
+    if(state.before && state.after){
+      const urls=[URL.createObjectURL(state.before),URL.createObjectURL(state.after)];
+      const wipe=ProofTools.slider(root,urls[0],urls[1]);
+      wipe.root.querySelectorAll('img').forEach((image,index)=>{
+        const revoke=()=>URL.revokeObjectURL(urls[index]);
+        image.addEventListener('load',revoke,{once:true});image.addEventListener('error',revoke,{once:true});
+      });
+    }
     const confirm=el('label','pair-confirm');const check=el('input');check.type='checkbox';check.checked=state.confirmed;
     check.addEventListener('change',()=>{state.confirmed=check.checked;delete state.measurement;output.replaceChildren();});
     confirm.append(check,document.createTextNode(tx('I confirm the same site, viewpoint and framing. Dates are self-reported.', '我确认地点、视角和构图相同，日期为自行申报。')));root.appendChild(confirm);
@@ -294,7 +327,9 @@ window.ProofEvidence = (() => {
       metric(metrics,tx('Visual match · SSIM heuristic','视觉匹配 · SSIM 启发式'),(m.match*100).toFixed(1)+'/100');
       const delta=(m.afterGreen-m.beforeGreen)*100;
       metric(metrics,tx('Visible green-pixel change','可见绿色像素变化'),(delta>=0?'+':'')+delta.toFixed(1)+' pp');output.appendChild(metrics);
-      lineChart(output,[{date:state.beforeDate,value:m.beforeGreen},{date:state.afterDate,value:m.afterGreen}],{min:0,max:1,format:v=>(v*100).toFixed(0)+'%',dashed:true,title:'Before and after visible green-pixel share'});
+      const pointDetail=el('p','evidence-note');pointDetail.setAttribute('role','status');
+      const chart=lineChart(output,[{date:state.beforeDate,value:m.beforeGreen},{date:state.afterDate,value:m.afterGreen}],{min:0,max:1,format:v=>(v*100).toFixed(1)+'%',dashed:true,title:tx('Before and after visible green-pixel share','之前与之后的可见绿色像素比例'),onSelect:(point,index)=>{pointDetail.textContent=(index?tx('After','之后'):tx('Before','之前'))+' · '+point.date+' · '+(point.value*100).toFixed(2)+'% · '+tx('Local RGB heuristic; acquisition date self-reported.','本地 RGB 启发式；拍摄日期为自行申报。');}});
+      output.appendChild(pointDetail);chart.select(0);
       note(output,tx('Two observations only; dashed line connects endpoints, not measured growth between dates. RGB green-pixel share is a lighting-sensitive heuristic, not NDVI or canopy cover. Structural SSIM uses 8×8 grayscale windows at 128 px width; 100 means visually identical, not authentic. No image registration is performed.', '仅两次观测；虚线只连接端点，不代表期间实测生长。RGB 绿色像素比例受光照影响，并非 NDVI 或冠层覆盖率。结构 SSIM 使用宽度 128 像素的灰度图和 8×8 窗口；100 表示视觉相同，不代表真实。未进行图像配准。'));
     }
     if(state.measurement)renderMeasurement();
@@ -317,7 +352,20 @@ window.ProofEvidence = (() => {
     function render(){
       const site=data.sites.find(s=>s.id===select.value);const obs=site.observations;content.replaceChildren();
       note(content,site.lat.toFixed(3)+', '+site.lon.toFixed(3)+' · '+data.resolutionMeters+' m · '+obs.length+tx(' clear acquisitions',' 次晴空采集'));
-      lineChart(content,obs.map(o=>({date:o.date,value:o.ndvi})),{min:-1,max:1,format:v=>v.toFixed(1),title:'Landsat NDVI greenness at '+site.name});
+      const acquisition=el('select','txt-in');
+      acquisition.setAttribute('aria-label',tx('Selected Landsat acquisition','选择 Landsat 采集'));
+      obs.forEach((o,index)=>{const option=el('option','',o.date+' · NDVI '+o.ndvi.toFixed(3));option.value=index;acquisition.appendChild(option);});
+      const selected=el('div','ndvi-acquisition');selected.setAttribute('role','status');
+      function showAcquisition(_,index){
+        const o=obs[index];acquisition.value=index;selected.replaceChildren();
+        selected.append(el('b','',tx('Acquired ','采集于 ')+o.acquiredAt.replace('T',' ').replace('Z',' UTC')),el('p','','NDVI '+o.ndvi.toFixed(5)+' · QA_PIXEL '+o.qaPixel+' · QA_RADSAT '+o.qaRadsat));
+        const link=el('a','',o.sceneId);link.href=o.sourceUrl;link.target='_blank';link.rel='noopener noreferrer';selected.appendChild(link);
+        note(selected,tx('One 30 m reference pixel; no numeric confidence interval is available. Cloud screening, seasonality and mixed pixels remain sources of uncertainty. This is not linked to your submitted photo.','单个 30 米参考像素；无数值置信区间。云筛选、季节变化及混合像元仍带来不确定性；与提交照片无关联。'));
+      }
+      const chart=lineChart(content,obs.map(o=>({date:o.date,value:o.ndvi})),{min:-1,max:1,format:v=>v.toFixed(3),title:'Landsat NDVI greenness at '+site.name,onSelect:showAcquisition});
+      const acquisitionLabel=el('label','evidence-select',tx('Inspect acquisition ','查看采集 '));acquisitionLabel.appendChild(acquisition);
+      content.append(acquisitionLabel,selected);
+      acquisition.addEventListener('change',()=>chart.select(+acquisition.value));chart.select(0);
       const first=obs[0],last=obs[obs.length-1],delta=last.ndvi-first.ndvi;
       note(content,'NDVI '+first.ndvi.toFixed(3)+' → '+last.ndvi.toFixed(3)+' · Δ '+(delta>=0?'+':'')+delta.toFixed(3)+tx(' (endpoint difference, not a causal trend)','（端点差异，并非因果趋势）'));
       const details=el('details','ndvi-details');details.appendChild(el('summary','',tx('Acquisition dates, raw values & sources','采集日期、原始值与来源')));
@@ -334,5 +382,5 @@ window.ProofEvidence = (() => {
     note(root,tx('Lines connect clear observations; missing/cloudy dates are omitted. Seasonal greening does not establish additionality or permanence. No satellite request is made during the demo.', '连线连接晴空观测；缺失或多云日期被省略。季节变绿不证明额外性或持久性，演示期间不请求卫星数据。'));
     parent.appendChild(root);
   }
-  return { remember, render(parent,result){modelPanel(parent,result);pairPanel(parent,result);}, comparePixels };
+    return { remember, prepareOffline, render(parent,result){modelPanel(parent,result);pairPanel(parent,result);}, comparePixels };
 })();

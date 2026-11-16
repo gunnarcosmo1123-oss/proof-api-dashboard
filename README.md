@@ -19,6 +19,7 @@
 - **Open `index.html`** in any modern browser (double-click works, no server, no dependencies, works offline).
 - Language: top-right toggle. Default follows your **browser language** (three-level fallback: `?lang=` → localStorage → `navigator.language`); force it with `index.html?lang=en`.
 - Mobile: the repo ships a PWA manifest + icons — open the URL and "Add to Home Screen".
+- Hosted offline use: in **Submit → Field capture & offline drafts**, choose **Prepare app for offline use** once while online. This caches the app and local photos without downloading CLIP. Choose **Save offline draft** to retain an original photo, then disconnect, reload and **Restore draft**. Nothing submits automatically.
 - Data self-check: `node build/test-data.js` (validates all dataset invariants); QR generator self-check: `node build/verify-qr.js`.
 - New evidence checks: `node build/test-evidence.js` (SSIM, green pixels, Landsat QA/provenance and raw-value NDVI calculations).
 - Debug URLs: `?tab=map` jumps to the action map, `?map-country=Malaysia` preselects a country, `?map-date=2026-11-10` preselects a replay date, `?drawer=PA-1082` opens a submission detail, `?agent=PA-1082` auto-runs an agent investigation, `?demo-submit=1` runs one scripted photo submission end-to-end, `?demo-submit=2` submits the same photo twice (second one gets flagged as an exact-hash duplicate), **`?tour=1` auto-plays the 90-second narrated story** (upload → real verification → cropped/filtered resubmission → DUP_PHASH interception → the carbon price tag → agent evidence chain; pause / step / skip controls, zero network calls), `?offline=1` shows the static offline first screen.
@@ -32,7 +33,7 @@ For the real model, serve the directory on **localhost or HTTPS** (for example `
 - **Real local inference:** Transformers.js **2.17.2**, ONNX Runtime Web **1.14.0**, quantized `Xenova/clip-vit-base-patch32` at revision `6b7c523703ae26e39be4b03774966f8571c7f523`. CPU/WASM runs in a worker. The runtime and WASM are bundled locally and loaded on demand. The image is passed to that worker in memory; it is never sent to a server.
 - **Natural-language candidates:** “a rooftop covered with solar panels”, “volunteers collecting trash on a beach”, “newly planted tree seedlings”, and matching wetland, EV-charging and insulation prompts. The exact strings appear in the result. Top 3 / top 6 show the actual candidate-relative softmax probabilities, with the claimed action’s probability shown separately. These are **not calibrated authenticity or action-occurrence confidence**.
 - **Measured timing:** inference includes CLIP preprocessing/forward pass/postprocessing, measured with `performance.now()`; model loading and initialization are reported separately. The initial run can include WASM compilation overhead. No scores or timing values are fabricated. CLIP never changes the heuristic verdict, duplicate flags, or approval status.
-- **Offline proof:** the model files use a versioned Cache API cache. Opt-in also installs a scoped service worker that caches the app shell, local runtime, WASM and demo photos. **Verify cache-only rerun** starts a fresh worker, disallows remote model access and requires WASM fetches to hit cache. To demonstrate a real offline session: complete the first run, disconnect, reload the page, resubmit or reattach the same original, and run again. Original images stay in memory only; existing 240 px session thumbnails keep their established localStorage behavior. Browser storage can be evicted or cleared, so a fresh browser/origin can require a new download.
+- **Offline proof:** the model files use a versioned Cache API cache. Opt-in also installs a scoped service worker that caches the app shell, local runtime, WASM and demo photos. **Verify cache-only rerun** starts a fresh worker, disallows remote model access and requires WASM fetches to hit cache. To demonstrate a real offline session: complete the first run, disconnect, reload the page, resubmit or reattach the same original, and run again. Original images stay in memory unless explicitly saved as an IndexedDB draft; existing 240 px session thumbnails keep their established localStorage behavior. Browser storage can be evicted or cleared, so a fresh browser/origin can require a new download.
 - **Visible fallback:** unsupported contexts/APIs, missing/evicted cache, network/load failures, decode/inference failures, storage-quota errors, cancellation, and a five-minute timeout leave the heuristic result available with a visible reason. A failed model run cannot auto-approve evidence.
 - **Positioning:** local processing avoids image uploads and server inference. Cached weights avoid repeated downloads. We do **not** claim measured energy savings: the first download and inference consume energy, and device/grid conditions matter. CLIP is a semantic cross-check alongside hashes/EXIF/provenance; it is **not an AI-generated-image detector**.
 
@@ -61,7 +62,7 @@ NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-a11y-browser.js
 MODEL_TEST=1 NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-evidence-browser.js
 ```
 
-`test-a11y-browser.js` checks the footer's accessibility claim the way a booth visitor would: Tab order (skip link first), WAI-ARIA tablist/tab/tabpanel semantics on all eight views, and full keyboard traversal with ArrowRight/ArrowLeft/Home/End — in English and Chinese. A human screen-reader pass (NVDA or VoiceOver) is still recommended before claiming anything stronger.
+`test-a11y-browser.js` checks the footer's accessibility claim the way a booth visitor would: Tab order (skip link first), WAI-ARIA tablist/tab/tabpanel semantics on every visible view (the view list is read from the DOM, so new tabs stay covered), and full keyboard traversal with ArrowRight/ArrowLeft/Home/End — in English and Chinese. A human screen-reader pass (NVDA or VoiceOver) is still recommended before claiming anything stronger.
 
 Set `CHROMIUM_PATH` for your installed Chromium if needed. The first command checks the default path, paired evidence, source labels, model-load fallback, Chinese mobile layout and `file://` (reports a skip if browser policy blocks local-file navigation). `MODEL_TEST=1` additionally runs genuine CLIP inference, checks all six probabilities sum to one, performs a fresh-worker cache-only run, reloads the app offline, checks original-image reattachment by SHA, and tests fallback after evicting weights. The real-model test downloads ~150 MB and intentionally removes its cached weights at the end. Use `PROOF_TEST_PROFILE` only with a disposable test profile. In a managed network, `PROOF_TEST_MIRROR` can point to a test-only streaming mirror that verifies upstream TLS; it is never an application setting.
 
@@ -79,9 +80,54 @@ The map remains zero-dependency and uses the bundled Natural Earth geometry, wit
 
 Checks: `node build/test-map-explorer.js` for scopes, coverage denominators and live aggregation; `NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-map-browser.js` with the server running for global/date filtering, highlights, search, zoom/pan, Analytics handoff, recommendations, live updates, Chinese mobile layout and offline reload.
 
+## Community experience: discover, plan, document and review
+
+The default **Home** page leads with a credited, bundled community-action photograph and three entry points: **Explore actions**, **Submit evidence** and **Review evidence**. Operational KPIs remain in Overview. Seed records are labelled as simulated, and Commons photographs as illustrative; they are not claimed to depict the demo project locations.
+
+The Action Map adds **Map + gallery / Gallery / Table** modes with the same country, city, action-date and action-type scope. Cards show the action, community/submitter, date and evidence stage; hovering or focusing a card highlights its city and country, while map markers highlight matching cards. Clickable action-type bars filter map highlights, ranking, records and direct analytics. **Open in Analytics** carries that action filter into the hierarchy as well. Coverage intentionally uses **all action types** for the selected location/date, with an explicit note, so filtering the results to cleanup cannot fabricate gaps in the other activity types.
+
+Each coverage card has **Explore this activity**, opening a three-step local project starter: suitability/permissions, project plan, and evidence/follow-up preparation. It collects a project name, community, recorded city, planned date, optional resources/plan and explicit browser-storage consent. Saving creates a project draft and prefills the Submit tab with its action, city, date and explicit project link. Permissions remain **to check**; planning checkboxes do not create baseline evidence or imply permits were granted.
+
+**Evidence guides** contains six bilingual Proof API field guides, version **1.0** (2026-11-15): cleanup, afforestation, solar, wetland restoration, EV charging and retrofit. Each describes suitable conditions, permissions/safeguards, resources, baseline records, action evidence and suggested follow-up. Verra and Climate Action Reserve links are reference frameworks; the guides are our own planning checklists, not approved certification methodologies. The Submit tab also offers optional structured, **self-reported** details (for example species/count/maintenance, solar kWp/installer/meter reference, or cleanup mass/disposal). Numeric details are validated, stored with the guide version and shown in the story; they never feed synthetic model confidence or certify outcomes.
+
+**Project stories** open from gallery cards, table entries, the evidence drawer or submit results. A story includes the community/site, evidence photo and attribution, dated action/review/observation timeline, missing-baseline/follow-up states and the relevant field guide. Explicitly linked repeat submissions appear in one project; nearby records and duplicate photos are never automatically grouped. Seed and standalone records have a single-record story without invented baseline, follow-up or review events. A local project can accept dated baseline/follow-up notes, optional non-negative observations and optional reduced image previews (input limit 12 MB, preview up to 800 px). Dates are self-reported; baselines must precede the action, and follow-ups must follow the latest action. Earlier follow-ups do not count as outcome observations for a later action record.
+
+**Review stages** distinguish automated checks, a recorded human review and outcome-observation availability. The prototype decision formerly labelled “Verified” is now **Accepted**; it is not third-party certification. Accept/reject controls open a review form requiring a self-declared reviewer name, a written reason and an acknowledgement of evidence limitations. Review events are timestamped, retain the original automated disposition and persist across reloads, including decisions on seeded records. “Human reviewed · local” does not imply authenticated identity, independent accreditation or issued credits. Follow-up availability indicates a self-reported record, not proven ecological benefit.
+
+Projects, observation previews and review logs use the versioned `proof-community-v1` browser-storage entry; existing submissions/thumbnails remain in `proof-session`. No accounts, backend, image upload or external service is introduced. Saving fails visibly and atomically if project/review storage is unavailable or full; unreadable project storage is retained instead of silently overwritten. Original observation-photo bytes are not retained. Project-story URLs (`?tab=story&story=PR-…`) reopen local records on the same browser; another device needs its own records and shows an explicit unavailable state. A demo/standalone story uses `story=record:PA-…`.
+
+The new scripts and stylesheet are included in optional offline shell **v3**, retaining the existing model cache and prior-shell fallback. Checks: `node build/test-community.js`, plus `NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-community-browser.js` with the local server running. Browser coverage includes the complete project → linked submission → baseline/follow-up → reasoned review → reload/offline workflow, gallery/table filter parity, linked highlights, source/version labels and Chinese mobile layouts.
+
+## Date controls, visual polish, paired views, field capture and regions
+
+Implements roadmap items **4, 7, 8, 13 and 14**:
+
+- **4 — Periods and replay:** the Action Map supports an exact date, inclusive From/To ranges, open-ended ranges and Last 7/30 days ending on the device's current calendar date. Invalid ranges retain the previous applied filter and explain the problem. Lists, counts, ranking, highlights, coverage and the Analytics handoff share the selected period. Play/Pause replays recorded days inside that period; speed is adjustable, Restore selected period returns to the original range, and playback pauses when leaving the tab or hiding the document. Dates are claimed action dates, not upload timestamps. Seed records are from November 2026, so later relative presets can be empty.
+- **7 — Shared dashboard styling:** a light forest-green theme, consistent local SVG navigation/action/organisation icons, clearer typography, quieter card borders and spacing apply to the existing dashboards and new community views. Status labels remain explicit; charts keep their categorical/status semantics. No external fonts or icon libraries. Mobile controls have larger touch targets and reduced-motion preferences are respected.
+- **8 — Evidence interaction:** before/after photos have a draggable wipe with a keyboard-accessible range input, preserving image aspect ratios. It appears in the submit pair panel and in stories with an actual dated baseline photo and later action/follow-up photo. No baseline is invented for seed records. Measured RGB greenness endpoints and real Landsat NDVI acquisitions can be selected by click/keyboard; NDVI also has a touch-friendly acquisition selector. The detail panel shows acquisition time, NDVI, scene link, QA and uncertainty. Reference satellite pixels remain explicitly unlinked to submission photos; the wipe does not register images or authenticate a viewpoint.
+- **13 — Field capture and sharing:** an optional rear-camera file picker, previous-view framing reference/opacity overlay, explicit original-file IndexedDB drafts with restore/delete, and opt-in device geolocation. Location is off until clicked and is labelled separately from photo EXIF. Removal cancels pending attachment; original EXIF remains available to local forensics. HTTPS/localhost is needed for geolocation and app caching; unavailable storage/cache/location APIs show a reason while manual/local checks remain available. Drafts do not auto-restore, upload or submit. They may contain embedded EXIF/GPS, should be deleted on shared devices, and disappear if browser storage is cleared. In-progress originals survive language switches. App-only offline preparation excludes the CLIP runtime/weights; full model preparation remains a separate opt-in. The v4 shell retains existing model caches.
+- **14 — Regional comparison:** the **Regions** tab compares two or three countries **or** two or three recorded cities at the same geographic level, using one shared period/action filter. It shows sample sizes, seed/local provenance, accepted-record rate, actual human-review coverage, documentation completeness, linked follow-up coverage and action mix. Duplicate regions are blocked. Zero/small samples and reporting limitations are visible. Activity bars and region headers open the corresponding filtered map. Industry comparison is excluded as requested.
+
+### Comparison definitions and privacy
+
+Acceptance is the current prototype disposition, including automated decisions; it is not independent certification. Human-review coverage counts actual saved reviews, whose identity is self-declared and browser-local. Documentation completeness is assessed **only for local submissions with forensics**: photo preview, valid claimed date/city, and all action-specific guide fields filled in. It measures presence, not accuracy; seed archive fields are not assessed. Follow-up coverage counts action records linked to a project with a self-reported follow-up on/after that action date. Such observations can occur outside the selected action-date period, and one project observation can cover multiple records. Every rate displays its numerator/denominator. No population adjustment, impact ranking, industry comparison or causal climate-impact claim is made.
+
+**Share view** creates a URL containing only country/city, period, action type, language and view mode. It strips unrelated query/hash state; a manual-copy fallback handles clipboard denial. Recipients see their own browser's records under those filters, not the sender's local photos or projects. Hosted URLs are needed for sharing across devices. URL parameters include `map-city=Nairobi`, `map-from=2026-11-01`, `map-to=2026-11-15`, `map-action=afforest`, and `map-view=gallery` alongside the existing country/exact-date parameters.
+
+**Download project summary** creates a local JSON report with action records, dates, evidence stages, numeric self-reported fields, observations, provenance and limitations. Names, project/community text, notes, string evidence fields, photo previews and precise device coordinates are excluded by default. Separate unchecked choices permit personal/free-text details, previews and explicitly attached device coordinates. Original photo bytes, EXIF and file hashes are always excluded. This summary is separate from the pre-existing detailed printable verification receipt.
+
+Checks (with the static server running for browser suites):
+
+```sh
+node build/test-regional-tools.js
+NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-regional-browser.js
+```
+
+The new checks cover calendar boundaries, range/count parity, denominators, actual review/follow-up provenance, redaction, URL round trips, invalid-range feedback, replay lifecycle, regional selection, exact original bytes after offline draft restore/submission, opt-in location, framing, accessible comparison/acquisition selection, downloads, storage failures and bilingual mobile layout. Existing data, forensics, pHash, QR, evidence, map and community checks remain applicable.
+
 ## One clear flow — submit → result → flags → receipt
 
-The first tab (**提交验证 / Submit**) is the end-to-end flow Sadaf asked for:
+The **提交验证 / Submit** tab provides the end-to-end evidence flow:
 
 1. **Upload & claim** — drag-and-drop or file picker, live preview with file info (size / dimensions / type), claimed action type, location, optional submitter name, **submit-as toggle (individual / organisation) with an organisation picker** (choosing an org auto-fills its city; an **"Other"** option accepts a free-text org name → `org: 'custom:<name>'`, which becomes an *unregistered-organisation risk signal*), and an **action date** field (used by the action map's date replay). A **⚡ sample-photo button** generates a synthetic photo so the flow can be demoed with one click.
 2. **Local heuristic checks** — animated pipeline: ingest & fingerprint → three on-device heuristic checks → duplicate detection → receipt. **Real client-side computation**: SHA-256 of the file, **pHash-DCT 64-bit perceptual fingerprint** (32×32 grayscale → hand-written 2-D DCT → low-freq 8×8 minus DC → median threshold), Laplacian noise variance (authenticity heuristic), HSV color-profile cosine similarity (action-match **color-prior heuristic**, labelled as such), **ELA error-level analysis** (JPEG q90 re-encode → per-pixel diff heatmap + high-error share), **hand-written JPEG APP1/TIFF EXIF parsing** (GPS, Make/Model, Software, DateTimeOriginal), and a **C2PA/XMP provenance scan** of the file bytes. Geolocation is a **haversine distance from EXIF GPS to the claimed city** when GPS exists; otherwise a clearly-labelled demo-derived score.
@@ -100,10 +146,13 @@ Mobile submission → Ingestion → local heuristic checks → Duplicate detecti
 
 The dashboard covers the four review dimensions from our brief — **photo submissions, verification scores, duplicate flags, results** — plus the evidence-check agent slot, and the v0.2 planning layer: **hierarchy analytics (org → city → country → global)**, a **global action map** with per-country project lists and date replay, and **action coverage gap analysis**.
 
-## Information architecture (8 modules)
+## Information architecture
 
 | Module | Purpose | Key interactions |
 |---|---|---|
+| **Home** | Community entry point | Credited photo, explore/submit/review actions, illustrative action gallery and local project drafts |
+| **Evidence guides** | Action-specific planning and documentation | Six versioned bilingual field guides, applicability/source notes and a project-starter wizard |
+| **Project story** | Follow an explicit project or standalone record | Evidence timeline, repeat submissions, baseline/follow-up observations, source attribution and local human-review history |
 | **Submit** | The end-to-end flow | Upload → animated verification → verdict + flags → forensics panel (ELA heatmap / EXIF / C2PA) → printable receipt; individual/organisation toggle + org picker with an **"Other — free-text name"** option; action date; one-click sample-photo demo; session submission history |
 | **Overview** | Pipeline health & 14-day window | 5 KPIs, stacked daily volume by outcome, score histogram, action-type ranking (grouped by category), live feeds with org labels |
 | **Review queue** | Core review workflow | Status/action filters, photo cards with composite ring + 3 sub-score bars and org chips, detail drawer, approve / reject (updates KPIs live), one-click dispatch to the agent |
@@ -235,7 +284,7 @@ Source pages are linked in `build/photos-manifest.json`. Uploaded user photos (s
 
 ## Design system
 
-- **White / light theme** (per team preference), status colors fixed to the accessible palette with icon+label pairing (color never carries meaning alone); categorical hues from a colorblind-safe validated palette (OKLab checks), single-hue ordinal ramps for rankings/histograms; thin 2px marks, 2px surface gaps, hover tooltips, legends, table views — per professional data-viz standards.
+- **Light theme** with shared forest-green surfaces, local line icons and quieter dashboard cards; status colors fixed to the accessible palette with icon+label pairing (color never carries meaning alone); categorical hues from a colorblind-safe validated palette (OKLab checks), single-hue ordinal ramps for rankings/histograms, hover tooltips, legends and table views.
 - Bilingual zh/en via a full i18n dictionary (`?lang=en`), deterministic SVG "photos" (no real images needed for the demo; duplicate members render as slightly zoomed/shifted variants of the original — visually convincing crop/filter re-uploads).
 - Zero dependencies, pure-function data model (validated by `build/test-data.js`), `node --check` syntax gate, `window.__fatal` red banner instead of white screens, `?v=` cache busting on every asset.
 
@@ -246,7 +295,7 @@ Real backend / API, authentication & reviewer roles, a real LLM behind the rules
 ## Roadmap
 
 - **v0.3** — API mock layer (static JSON or local server), reviewer roles, real agent loop behind the agent (step streaming from an LLM with tool calls), dark mode variant.
-- Later — cross-checking with satellite/registry data partners, mobile app submission flow, org-level admin views (org managers see only their submissions).
+- Later — cross-checking with satellite/registry data partners, native mobile distribution, org-level admin views (org managers see only their submissions). Browser-based camera capture and offline drafts are implemented.
 
 ## File map
 
@@ -261,6 +310,16 @@ proof-api-dashboard/
                        from Natural Earth 110m, public domain; offline, no fetch)
   js/map-explorer.js   interactive map, shared location/date filters, analytics,
                        global/local action lists and coverage opportunities
+  js/community-data.js versioned field guides, local project/observation records,
+                       independent review stages and persistent review history
+  js/experience.js     Home, galleries, project starters/stories, guide/review UI
+  css/experience.css   community views, responsive galleries/dialogs/story pages
+  css/field-tools.css  shared dashboard styling, dates, capture and regional UI
+  js/insights.js       inclusive calendar periods, auditable regional measures,
+                       redacted report data and filter-only URL serialization
+  js/field-tools.js    shared local icons, date controls, wipe, share/export UI
+  js/capture.js        explicit IndexedDB originals, framing and location controls
+  js/regions.js        country/city comparison, shared filters and map drill-down
   js/photos.js         deterministic SVG photo-scene generator
   js/i18n.js           zh/en dictionary, t()/lb()
   js/charts.js         zero-dep SVG chart engine (light ink, validated ramps)

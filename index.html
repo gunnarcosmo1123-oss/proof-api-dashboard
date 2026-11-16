@@ -22,7 +22,9 @@
   <meta name="twitter:title" content="Proof API — AI Climate-Action Verification">
   <meta name="twitter:description" content="Photo-based climate-action verification: on-device heuristic scoring (demo), duplicate interception, ELA/EXIF forensics, evidence-check agent. Team P05 prototype — offline, zero dependencies.">
   <meta name="twitter:image" content="assets/og.png">
-  <link rel="stylesheet" href="css/style.css?v=20261115c">
+  <link rel="stylesheet" href="css/style.css?v=20261115d">
+  <link rel="stylesheet" href="css/experience.css?v=20261115d">
+  <link rel="stylesheet" href="css/field-tools.css?v=20261115d">
   <script>
   /* 语言三级回落(?lang= → localStorage → 浏览器语言),首帧前执行:国际评委不会看到中文首屏 */
   (function(){
@@ -129,23 +131,31 @@
 
   <!-- 导航 -->
   <nav class="tabs" id="tabs">
+    <button data-tab="home" class="active"></button>
     <button data-tab="submit"></button>
-    <button data-tab="overview" class="active"></button>
+    <button data-tab="overview"></button>
     <button data-tab="queue"></button>
     <button data-tab="dup"></button>
     <button data-tab="analytics"></button>
     <button data-tab="map"></button>
+    <button data-tab="regions"></button>
     <button data-tab="agent"></button>
+    <button data-tab="guides"></button>
+    <button data-tab="story" hidden></button>
     <button data-tab="about"></button>
   </nav>
 
   <main id="main-content" tabindex="-1">
+    <section id="tab-home" class="tab active"></section>
+    <section id="tab-guides" class="tab"></section>
+    <section id="tab-story" class="tab"></section>
     <section id="tab-submit" class="tab"></section>
-    <section id="tab-overview" class="tab active"></section>
+    <section id="tab-overview" class="tab"></section>
     <section id="tab-queue" class="tab"></section>
     <section id="tab-dup" class="tab"></section>
     <section id="tab-analytics" class="tab"></section>
     <section id="tab-map" class="tab"></section>
+    <section id="tab-regions" class="tab"></section>
     <section id="tab-agent" class="tab"></section>
     <section id="tab-about" class="tab"></section>
   </main>
@@ -157,17 +167,23 @@
     <span id="footer-4">演示照片素材来自 Wikimedia Commons(公有领域 / CC 许可),出处、作者与许可详见「关于」页;仓库整体以 CC BY-SA 4.0 发布</span>
   </footer>
 
-  <script src="js/data.js?v=20261115c"></script>
-  <script src="js/photos.js?v=20261115c"></script>
-  <script src="js/map-data.js?v=20261115c"></script>
-  <script src="js/i18n.js?v=20261115c"></script>
-  <script src="js/charts.js?v=20261115c"></script>
-  <script src="js/api.js?v=20261115c"></script>
-  <script src="js/model-config.js?v=20261115c"></script>
-  <script src="js/ndvi-data.js?v=20261115c"></script>
-  <script src="js/evidence.js?v=20261115c"></script>
-  <script src="js/map-explorer.js?v=20261115c"></script>
-  <script src="js/app.js?v=20261115c"></script>
+  <script src="js/data.js?v=20261115d"></script>
+  <script src="js/photos.js?v=20261115d"></script>
+  <script src="js/map-data.js?v=20261115d"></script>
+  <script src="js/i18n.js?v=20261115d"></script>
+  <script src="js/charts.js?v=20261115d"></script>
+  <script src="js/community-data.js?v=20261115d"></script>
+  <script src="js/insights.js?v=20261115d"></script>
+  <script src="js/field-tools.js?v=20261115d"></script>
+  <script src="js/capture.js?v=20261115d"></script>
+  <script src="js/api.js?v=20261115d"></script>
+  <script src="js/model-config.js?v=20261115d"></script>
+  <script src="js/ndvi-data.js?v=20261115d"></script>
+  <script src="js/evidence.js?v=20261115d"></script>
+  <script src="js/experience.js?v=20261115d"></script>
+  <script src="js/map-explorer.js?v=20261115d"></script>
+  <script src="js/regions.js?v=20261115d"></script>
+  <script src="js/app.js?v=20261115d"></script>
   <script>
   window.__bootOK = true;
   </script>

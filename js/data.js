@@ -513,7 +513,11 @@ const PROOF = {
   scopeSubs(countryEn, cityIdx, orgKey, date = null){
     return this.submissions.filter(s => {
       const c = this.city(s.city);
-      if(date != null && this.actionDate(s) !== date) return false;
+      if(date != null){
+        const day = this.actionDate(s);
+        if(typeof date === 'string' && day !== date) return false;
+        if(typeof date === 'object' && ((date.date && day !== date.date) || (date.from && day < date.from) || (date.to && day > date.to))) return false;
+      }
       if(countryEn != null && c.country.en !== countryEn) return false;
       if(cityIdx != null && s.city !== cityIdx) return false;
       if(orgKey != null){

@@ -89,8 +89,8 @@ async function main() {
     assert.equal(await page.locator('#map-city-filter').inputValue(), '4');
     assert.equal(await page.locator('#map-country-filter').inputValue(), 'China');
     assert.equal(await page.locator('.mapx-coverage-action .mapx-suggestion').count(), 5);
-    assert.match(await page.locator('[data-action=afforest]').innerText(), /native trees/);
-    assert.match(await page.locator('[data-action=cleanup]').innerText(), /100%/);
+    assert.match(await page.locator('#map-coverage [data-action=afforest]').innerText(), /native trees/);
+    assert.match(await page.locator('#map-coverage [data-action=cleanup]').innerText(), /100%/);
     await page.getByRole('button', { name: 'Reset all filters', exact: true }).click();
     await search.fill('Medellin');
     await search.press('Enter');
@@ -141,7 +141,7 @@ async function main() {
     });
     await page.locator('#map-date-filter').fill('2026-11-20');
     assert.equal(await page.locator('.mapx-project').count(), 1);
-    assert.match(await page.locator('[data-action=afforest]').innerText(), /1 \/ 1/);
+    assert.match(await page.locator('#map-coverage [data-action=afforest]').innerText(), /1 \/ 1/);
     console.log('PASS: new submissions update dates, map and coverage immediately');
 
     await page.setViewportSize({ width: 390, height: 844 });

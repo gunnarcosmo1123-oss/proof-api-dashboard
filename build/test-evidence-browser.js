@@ -38,7 +38,7 @@ async function main(){
   pass('default submission loads no model, runtime, WASM or service worker');
   assert.ok(await page.getByText('a single photo proves an action happened, not that it worked',{exact:true}).count());
   assert.equal(await page.locator('.satellite-panel .evidence-chart circle').count(),8);
-  await page.locator('.satellite-panel select').selectOption('xixi');
+  await page.getByLabel('Landsat reference site', {exact:true}).selectOption('xixi');
   assert.equal(await page.locator('.satellite-panel .evidence-chart circle').count(),7);
   assert.ok((await page.locator('.satellite-panel').innerText()).includes('Uncertainty:'));
   pass('bundled real Landsat sites render offline-ready observations and uncertainty');
