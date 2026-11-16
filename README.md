@@ -20,7 +20,7 @@
 | --- | --- |
 | PDF export of the final deck (16 slides) | [`deck/ProofAPI_Demo_Final.pdf`](deck/ProofAPI_Demo_Final.pdf) · [direct download](https://raw.githubusercontent.com/gunnarcosmo1123-oss/proof-api-dashboard/main/deck/ProofAPI_Demo_Final.pdf) |
 | Editable PowerPoint with embedded demo video & speaker notes | [`deck/ProofAPI_Demo_Final.pptx`](deck/ProofAPI_Demo_Final.pptx) |
-| Standalone demo video | [`deck/ProofAPI_Demo.mp4`](deck/ProofAPI_Demo.mp4) |
+| Standalone demo video (~82 s, narrated in English) | [`deck/ProofAPI_Demo.mp4`](deck/ProofAPI_Demo.mp4) |
 | 3-minute pitch script | [`deck/PITCH_3MIN.md`](deck/PITCH_3MIN.md) |
 
 The PDF is a direct export of the same final `.pptx` — all 16 slides in 16:9, with the demo-video slide rendered as a static poster frame (playback requires the PowerPoint file).

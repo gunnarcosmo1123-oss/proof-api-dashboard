@@ -3,7 +3,7 @@
 Team P05 · v0.2 · English-only prototype · final timing TBC by the organisers.
 Full deck: `ProofAPI_Demo_Final.pptx` (16 slides, speaker notes on every new slide).
 Live prototype: https://gunnarcosmo1123-oss.github.io/proof-api-dashboard/
-Embedded backup video: `ProofAPI_Demo.mp4` (also embedded on slide 16).
+Embedded backup video: `ProofAPI_Demo.mp4` (~82 s, H.264, English voiceover; also embedded on slide 16).
 
 ## Timing
 
@@ -38,7 +38,7 @@ roles, and run a field pilot with community groups."
 ## Live demo fallback (if the network fails)
 
 1. Keep the downloadable repository ZIP / `ProofAPI_Demo.mp4` open before the session.
-2. Play the embedded clip on slide 16 (silent, ~2 min) or the local MP4 in any player.
+2. Play the embedded clip on slide 16 (~82 s, narrated in English) or the local MP4 in any player.
 3. If demonstrating from source: double-click `index.html` — all default features work from `file://`;
    only the optional CLIP model and geolocation need localhost/HTTPS.
 
