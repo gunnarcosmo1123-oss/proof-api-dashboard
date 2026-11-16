@@ -22,6 +22,7 @@
 | Editable PowerPoint with embedded demo video & speaker notes | [`deck/ProofAPI_Demo_Final.pptx`](deck/ProofAPI_Demo_Final.pptx) |
 | Standalone demo video (~82 s, narrated in English) | [`deck/ProofAPI_Demo.mp4`](deck/ProofAPI_Demo.mp4) |
 | 3-minute pitch script | [`deck/PITCH_3MIN.md`](deck/PITCH_3MIN.md) |
+| Repository, source, licence & access statement | [`SUBMISSION.md`](SUBMISSION.md) |
 
 The PDF is a direct export of the same final `.pptx` — all 16 slides in 16:9, with the demo-video slide rendered as a static poster frame (playback requires the PowerPoint file).
 
@@ -39,7 +40,7 @@ The PDF is a direct export of the same final `.pptx` — all 16 slides in 16:9, 
 
 Submit a photo, then click **🧠 Run real model** in the result panel. This is an opt-in second opinion; the default submission engine remains zero-dependency, local, and offline, including when double-clicking `index.html`. No model script, WASM, worker, or weights are requested before opt-in.
 
-For the real model, serve the directory on **localhost or HTTPS** (for example `python -m http.server 8000`, then open `http://localhost:8000/?lang=en&tab=submit`). A first run needs a network connection to Hugging Face to download approximately 150 MB of pinned CLIP weights. Browser workers and the Cache API are required. `file://` continues to support heuristics and paired evidence; the model button explains why caching cannot run there.
+For the real model, serve the directory on **localhost or HTTPS** (for example `python -m http.server 8000`, then open `http://localhost:8000/?tab=submit`). A first run needs a network connection to Hugging Face to download approximately 150 MB of pinned CLIP weights. Browser workers and the Cache API are required. `file://` continues to support heuristics and paired evidence; the model button explains why caching cannot run there.
 
 - **Real local inference:** Transformers.js **2.17.2**, ONNX Runtime Web **1.14.0**, quantized `Xenova/clip-vit-base-patch32` at revision `6b7c523703ae26e39be4b03774966f8571c7f523`. CPU/WASM runs in a worker. The runtime and WASM are bundled locally and loaded on demand. The image is passed to that worker in memory; it is never sent to a server.
 - **Natural-language candidates:** “a rooftop covered with solar panels”, “volunteers collecting trash on a beach”, “newly planted tree seedlings”, and matching wetland, EV-charging and insulation prompts. The exact strings appear in the result. Top 3 / top 6 show the actual candidate-relative softmax probabilities, with the claimed action’s probability shown separately. These are **not calibrated authenticity or action-occurrence confidence**.
@@ -296,7 +297,7 @@ Source pages are linked in `build/photos-manifest.json`. Uploaded user photos (s
 ## Design system
 
 - **Light theme** with shared forest-green surfaces, local line icons and quieter dashboard cards; status colors fixed to the accessible palette with icon+label pairing (color never carries meaning alone); categorical hues from a colorblind-safe validated palette (OKLab checks), single-hue ordinal ramps for rankings/histograms, hover tooltips, legends and table views.
-- Bilingual zh/en via a full i18n dictionary (`?lang=en`), deterministic SVG "photos" (no real images needed for the demo; duplicate members render as slightly zoomed/shifted variants of the original — visually convincing crop/filter re-uploads).
+- English-only UI (the zh/en i18n dictionary is retained in source for reference but not rendered), deterministic SVG "photos" (no real images needed for the demo; duplicate members render as slightly zoomed/shifted variants of the original — visually convincing crop/filter re-uploads).
 - Zero dependencies, pure-function data model (validated by `build/test-data.js`), `node --check` syntax gate, `window.__fatal` red banner instead of white screens, `?v=` cache busting on every asset.
 
 ## Deliberately out of scope
@@ -313,6 +314,7 @@ Real backend / API, authentication & reviewer roles, a real LLM behind the rules
 ```
 proof-api-dashboard/
   index.html           shell, boot guard, i18n entry
+  SUBMISSION.md        repository, source, licence and access statement
   css/style.css        white design system (tokens, components, responsive)
   js/data.js           pure data model: 66 submissions in 14 cities / 8 countries,
                        14 orgs, 2 action categories, dup groups, hierarchy rollups,
@@ -332,7 +334,8 @@ proof-api-dashboard/
   js/capture.js        explicit IndexedDB originals, framing and location controls
   js/regions.js        country/city comparison, shared filters and map drill-down
   js/photos.js         deterministic SVG photo-scene generator
-  js/i18n.js           zh/en dictionary, t()/lb()
+  js/i18n.js           English-only UI strings, t()/lb() (legacy zh dictionary
+                       retained in source, never rendered)
   js/charts.js         zero-dep SVG chart engine (light ink, validated ramps)
   js/api.js            API boundary: submit payload/result + local verification engine
                        (real SHA-256 / pHash / noise / color, demo scoring; swap for real API)
