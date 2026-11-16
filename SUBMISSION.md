@@ -2,6 +2,12 @@
 
 **Team P05 · Proof API — Climate Action Verification Dashboard (v0.2 interactive prototype)**
 
+| Team field | Value |
+| --- | --- |
+| Team identifier | `P05` |
+| Team members (for submission forms) | `gunnarcosmo`, `Roshan` |
+| Corresponding author | `Hou guanyu (Gunnar Cosmo)` |
+
 ## 1. Repository and source files
 
 | Item | Link |
