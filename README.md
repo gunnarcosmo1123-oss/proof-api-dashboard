@@ -14,10 +14,21 @@
 
 ---
 
+## Pitch deck & submission assets
+
+| Asset | Link |
+| --- | --- |
+| PDF export of the final deck (16 slides) | [`deck/ProofAPI_Demo_Final.pdf`](deck/ProofAPI_Demo_Final.pdf) · [direct download](https://raw.githubusercontent.com/gunnarcosmo1123-oss/proof-api-dashboard/main/deck/ProofAPI_Demo_Final.pdf) |
+| Editable PowerPoint with embedded demo video & speaker notes | [`deck/ProofAPI_Demo_Final.pptx`](deck/ProofAPI_Demo_Final.pptx) |
+| Standalone demo video | [`deck/ProofAPI_Demo.mp4`](deck/ProofAPI_Demo.mp4) |
+| 3-minute pitch script | [`deck/PITCH_3MIN.md`](deck/PITCH_3MIN.md) |
+
+The PDF is a direct export of the same final `.pptx` — all 16 slides in 16:9, with the demo-video slide rendered as a static poster frame (playback requires the PowerPoint file).
+
 ## Quick start
 
 - **Open `index.html`** in any modern browser (double-click works, no server, no dependencies, works offline).
-- Language: top-right toggle. Default follows your **browser language** (three-level fallback: `?lang=` → localStorage → `navigator.language`); force it with `index.html?lang=en`.
+- Language: **English only**. The UI is locked to English from first paint; `?lang=`, localStorage and browser language no longer change it. The Chinese dictionary is kept in the repository for reference but is not rendered.
 - Mobile: the repo ships a PWA manifest + icons — open the URL and "Add to Home Screen".
 - Hosted offline use: in **Submit → Field capture & offline drafts**, choose **Prepare app for offline use** once while online. This caches the app and local photos without downloading CLIP. Choose **Save offline draft** to retain an original photo, then disconnect, reload and **Restore draft**. Nothing submits automatically.
 - Data self-check: `node build/test-data.js` (validates all dataset invariants); QR generator self-check: `node build/verify-qr.js`.
