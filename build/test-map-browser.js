@@ -145,13 +145,13 @@ async function main() {
     console.log('PASS: new submissions update dates, map and coverage immediately');
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.locator('#lang-toggle').click();
     assert.equal(await page.locator('#map-date-filter').inputValue(), '2026-11-20');
-    assert.ok((await page.locator('.mapx-context').innerText()).includes('全球'));
+    const mapContext = await page.locator('.mapx-context').innerText();
+    assert.ok(mapContext.trim().length > 0 && !/[\u4e00-\u9fff]/.test(mapContext), 'map context is English');
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     assert.equal(overflow, false);
     assert.equal(await page.locator('.mapx-coverage-card').count(), 3);
-    console.log('PASS: Chinese mobile layout preserves filters and avoids page overflow');
+    console.log('PASS: English-only mobile layout preserves filters and avoids page overflow');
 
     // Prepare the same offline shell used by opt-in CLIP, without fetching weights.
     await page.evaluate(async () => {

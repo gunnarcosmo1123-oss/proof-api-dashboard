@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <meta name="description" content="Proof API — AI climate-action verification dashboard (Team P05 prototype): photo submissions, on-device heuristic verification (demo rules, honestly labelled), duplicate interception, ELA/EXIF forensics, and an evidence-check agent. Zero dependencies, works offline. 照片提交、本地启发式验证评分、重复检测、取证与证据核查智能体。">
+  <meta name="description" content="Proof API — AI climate-action verification dashboard (Team P05 prototype): photo submissions, on-device heuristic verification (demo rules, honestly labelled), duplicate interception, ELA/EXIF forensics, and an evidence-check agent. Zero dependencies, works offline.">
   <title>Proof API · Climate Action Verification Dashboard — Team P05 prototype</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Crect%20width='24'%20height='24'%20rx='5.5'%20fill='%232a78d6'/%3E%3Cpath%20d='M9%204.5%20L19%204.5%20A1.5%201.5%200%200%201%2020.5%206%20L20.5%2015%20A1.5%201.5%200%200%201%2019%2016.5%20L10%2016.5%20L7%2019.5%20L7%2016.5%20L5%2016.5%20A1.5%201.5%200%200%201%203.5%2015%20L3.5%206%20A1.5%201.5%200%200%201%205%204.5%20Z'%20fill='none'%20stroke='%23fff'%20stroke-width='1.5'%20stroke-linejoin='round'/%3E%3Cpath%20d='M12%208.6%20l1.7%203.5%203.8%200.5%20-2.7%202.7%200.6%203.8%20-3.4%20-1.8%20-3.4%201.8%200.6%20-3.8%20-2.7%20-2.7%203.8%20-0.5%20z'%20fill='%23fff'/%3E%3C/svg%3E">
   <link rel="manifest" href="manifest.webmanifest">
@@ -26,22 +26,15 @@
   <link rel="stylesheet" href="css/experience.css?v=20261115d">
   <link rel="stylesheet" href="css/field-tools.css?v=20261115d">
   <script>
-  /* 语言三级回落(?lang= → localStorage → 浏览器语言),首帧前执行:国际评委不会看到中文首屏 */
+  /* English-only build: the UI is always presented in English, from first paint. */
   (function(){
-    var L = null;
-    try {
-      var q = new URLSearchParams(location.search).get('lang');
-      if(q === 'en' || q === 'zh'){ L = q; try { localStorage.setItem('proof-lang', q); } catch(e){} }
-    } catch(e){}
-    if(L !== 'zh' && L !== 'en'){ try { L = localStorage.getItem('proof-lang'); } catch(e){} }
-    if(L !== 'zh' && L !== 'en'){ L = (navigator.language || '').indexOf('zh') === 0 ? 'zh' : 'en'; }
-    window.__langHint = L;
-    document.documentElement.lang = (L === 'zh') ? 'zh-CN' : 'en';
-    document.title = (L === 'zh') ? 'Proof API · 气候行动验证看板 — Team P05 高保真原型' : 'Proof API · Climate Action Verification Dashboard — Team P05 prototype';
+    window.__langHint = 'en';
+    document.documentElement.lang = 'en';
+    document.title = 'Proof API · Climate Action Verification Dashboard — Team P05 prototype';
   })();
   </script>
   <script>
-  /* 启动守卫:引擎检测 + 错误可见化(任何异常都会显示在屏幕底部,不再白屏) */
+  /* Boot guard: engine detection + visible errors (never a blank screen) */
   window.__bootOK = false;
   window.__fatal = function(msg){
     var el = document.getElementById('boot-error');
@@ -56,14 +49,14 @@
   try{
     new Function('const f=(a,...b)=>({...a,["x"+1]:b?.[0]?.y??0});return f({},2).x1===2')();
   }catch(e){
-    window.__fatal('当前浏览器内核过旧,无法运行本页面。\n请使用最新版 Chrome / Edge 打开,或将 360 / QQ 浏览器的内核切换到"极速模式"后重试。');
+    window.__fatal('This browser is too old to run the prototype.\nPlease open it in the latest Chrome / Edge, or switch a 360 / QQ browser to its Chromium mode.');
   }
   window.addEventListener('error', function(ev){
     if(!window.__bootOK && ev && ev.message){
-      window.__fatal('页面加载出错:' + ev.message + '\n位置:' + (ev.filename||'').split('/').pop() + ' 第' + (ev.lineno||'?') + '行\n若刚更新过原型,请按 Ctrl+F5 强制刷新以清除旧缓存。');
+      window.__fatal('Page failed to load: ' + ev.message + '\nFile: ' + (ev.filename||'').split('/').pop() + ' line ' + (ev.lineno||'?') + '\nIf the prototype was just updated, press Ctrl+F5 to clear the old cache.');
     }
   });
-  /* ?offline=1 静态首屏兜底:不依赖任何外部脚本;boot 失败时同样显示 */
+  /* ?offline=1 static first-paint fallback: no external scripts required */
   document.addEventListener('DOMContentLoaded', function(){
     try {
       if(new URLSearchParams(location.search).get('offline')) window.__skipIntro = true;
@@ -77,22 +70,21 @@
 </head>
 <body>
 
-  <!-- 键盘用户:跳到主内容,越过顶栏与导航 -->
-  <a class="skip-link" href="#main-content">跳到主内容 / Skip to main content</a>
+  <!-- Keyboard users: skip the top bar and navigation -->
+  <a class="skip-link" href="#main-content">Skip to main content</a>
 
-  <!-- 离线静态兜底(?offline=1 或资源加载失败时显示;零脚本依赖) -->
+  <!-- Offline fallback (shown for ?offline=1 or a failed boot) -->
   <div id="offline-fallback" hidden style="max-width:640px;margin:64px auto;padding:34px 30px;font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;background:#ffffff;border:1px solid #e2e6ea;border-radius:16px;text-align:center;box-shadow:0 12px 34px rgba(16,24,40,0.10)">
     <div style="font-size:44px">◆</div>
     <h1 style="font-size:22px;margin-top:10px;color:#0b0b0b">Proof API — offline fallback</h1>
     <p style="color:#52514e;margin:14px 0;line-height:1.7">
-      The interactive prototype could not load (offline mode or a local file issue). Open <b>index.html</b> directly in a modern browser to run the full demo.<br>
-      交互原型未加载(离线模式或本地文件问题)。请在现代浏览器中直接打开 index.html 查看完整演示。
+      The interactive prototype could not load (offline mode or a local file issue). Open <b>index.html</b> directly in a modern browser to run the full demo.
     </p>
     <img src="assets/qr.png" alt="QR code" width="160" height="160" style="border-radius:10px;border:1px solid #e2e6ea">
-    <p style="color:#898781;font-size:12px;margin-top:8px">Scan to open the repository · 扫码打开仓库</p>
+    <p style="color:#898781;font-size:12px;margin-top:8px">Scan to open the repository</p>
   </div>
 
-  <!-- 启动画面 -->
+  <!-- Splash screen -->
   <div id="intro">
     <div class="intro-box">
       <div class="intro-logo">
@@ -103,12 +95,12 @@
       </div>
       <h2>Proof API</h2>
       <div class="intro-bar"><i id="intro-bar"></i></div>
-      <p id="intro-sub">正在初始化本地验证引擎与证据核查智能体… / Initializing the local verification engine &amp; evidence-check agent…</p>
-      <p id="intro-hint" class="intro-hint">点击任意位置跳过 · Click anywhere to skip</p>
+      <p id="intro-sub">Initializing the local verification engine &amp; evidence-check agent…</p>
+      <p id="intro-hint" class="intro-hint">Click anywhere to skip</p>
     </div>
   </div>
 
-  <!-- 顶栏 -->
+  <!-- Top bar -->
   <header class="topbar">
     <div class="brand">
       <div class="brand-logo">
@@ -118,18 +110,18 @@
         </svg>
       </div>
       <div class="brand-text">
-        <h1>Proof API<span>气候行动验证</span></h1>
+        <h1>Proof API<span>Climate Action Verification</span></h1>
         <p>AI-powered climate-action verification · Team P05</p>
       </div>
     </div>
     <div class="topbar-right">
-      <span id="top-ai"><i class="pulse"></i>本地启发式引擎 · 演示</span>
-      <span class="muted" id="top-ver">数据版本 2026.11 · 演示数据</span>
-      <button id="lang-toggle" class="btn btn-lang" type="button" title="Switch language / 切换语言" aria-label="Switch language / 切换语言"><span class="lg-ic">🌐</span><span data-l="zh">中文</span><i class="lg-sep">/</i><span data-l="en">EN</span></button>
+      <span id="top-ai"><i class="pulse"></i>On-device heuristics · demo</span>
+      <span class="muted" id="top-ver">Data version 2026.11 · demo data</span>
+      <button id="lang-toggle" class="btn btn-lang" type="button" style="display:none" aria-hidden="true" tabindex="-1" title="English only"><span class="lg-ic">🌐</span><span data-l="en">EN</span></button>
     </div>
   </header>
 
-  <!-- 导航 -->
+  <!-- Navigation -->
   <nav class="tabs" id="tabs">
     <button data-tab="home" class="active"></button>
     <button data-tab="submit"></button>
@@ -161,10 +153,10 @@
   </main>
 
   <footer>
-    <span id="footer-1">Proof API — AI 气候行动验证系统 · Team P05 高保真原型</span><br>
-    <span id="footer-2">本原型全部数据为演示用模拟数据,不包含真实用户提交;验证评分由演示模型生成,不代表真实模型能力</span><br>
-    <span id="footer-3">零依赖 · 离线可用 · 图表遵循专业数据可视化规范(色盲安全配色 · 可访问性)</span><br>
-    <span id="footer-4">演示照片素材来自 Wikimedia Commons(公有领域 / CC 许可),出处、作者与许可详见「关于」页;仓库整体以 CC BY-SA 4.0 发布</span>
+    <span id="footer-1">Proof API — Climate Action Verification · Team P05 interactive prototype</span><br>
+    <span id="footer-2">All data in this prototype is simulated; scores come from demo heuristics and do not represent real model capability</span><br>
+    <span id="footer-3">Zero dependencies · works offline · accessible, colour-blind-safe charts</span><br>
+    <span id="footer-4">Demo photos from Wikimedia Commons (public domain / CC): credits and licences in the About tab; repository released under CC BY-SA 4.0</span>
   </footer>
 
   <script src="js/data.js?v=20261115d"></script>

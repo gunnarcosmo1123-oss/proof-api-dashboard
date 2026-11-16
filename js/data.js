@@ -120,12 +120,12 @@ const ORGS = [
 
 /* ---- 提交人(绑定组织或为个人 org:null) ---- */
 const PEOPLE = [
-  { name: '林晓', org: 'org-gbg' }, { name: '王梓', org: 'org-gbg' }, { name: '刘安琪', org: 'org-gbg' },
-  { name: '陈雨桐', org: 'org-qingrun' }, { name: '何雨晴', org: 'org-qingrun' },
-  { name: '张伟', org: 'org-sunpower' }, { name: '吴悠', org: 'org-sunpower' },
-  { name: '刘畅', org: 'org-ecoride' }, { name: '徐嘉', org: 'org-ecoride' },
-  { name: '赵一鸣', org: 'org-treefirst' }, { name: '孙启', org: 'org-treefirst' },
-  { name: '李楠', org: 'org-homefit' }, { name: '罗伊', org: 'org-homefit' },
+  { name: 'Leo Lin', org: 'org-gbg' }, { name: 'Zoe Wang', org: 'org-gbg' }, { name: 'Angela Liu', org: 'org-gbg' },
+  { name: 'Ivy Chen', org: 'org-qingrun' }, { name: 'Chloe He', org: 'org-qingrun' },
+  { name: 'Wei Zhang', org: 'org-sunpower' }, { name: 'Yoyo Wu', org: 'org-sunpower' },
+  { name: 'Charlie Liu', org: 'org-ecoride' }, { name: 'Grace Xu', org: 'org-ecoride' },
+  { name: 'Ian Zhao', org: 'org-treefirst' }, { name: 'Kevin Sun', org: 'org-treefirst' },
+  { name: 'Nancy Li', org: 'org-homefit' }, { name: 'Roy Luo', org: 'org-homefit' },
   { name: 'Amina Wanjiru', org: 'org-kinara' },
   { name: 'Putri Rahma', org: 'org-hijau' },
   { name: 'Diego Torres', org: 'org-sierra' },
@@ -134,7 +134,7 @@ const PEOPLE = [
   { name: 'Priya Nair', org: 'org-mumbai' }, { name: 'Ravi Kumar', org: 'org-mumbai' },
   { name: 'Beatriz Silva', org: 'org-amazonia' },
   { name: 'Chidi Okafor', org: 'org-lagosclean' },
-  { name: '黄思远', org: null }, { name: '周子墨', org: null }, { name: '郑浩然', org: null }, { name: 'Grace Kim', org: null }
+  { name: 'Ethan Huang', org: null }, { name: 'Mia Zhou', org: null }, { name: 'Ryan Zheng', org: null }, { name: 'Grace Kim', org: null }
 ];
 
 const DEVICES = ['iPhone 15 Pro', 'Pixel 9', 'Redmi K70', 'Galaxy S24', 'Mi 14', 'OnePlus 12'];

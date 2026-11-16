@@ -259,9 +259,7 @@ async function main() {
     assert.equal(await page.evaluate(() => SUBMIT.actionEvidence.values.planted), '100');
     assert.equal(await page.evaluate(() => SUBMIT.deviceLocation.lat), -1.25);
     await page.locator('#tab-submit .submit-actions .btn-primary').click();
-    // A language rebuild during the async local pipeline must keep its live result panel.
-    await page.locator('#lang-toggle').click();
-    await page.locator('#lang-toggle').click();
+    // The async local pipeline must keep its live result panel (no language rebuild).
     await page.locator('#run-real-model').waitFor({ timeout: 20000 });
     const record = await page.evaluate(() => SUBMIT.result.submission);
     assert.equal(await page.evaluate((id) => REG.hashes.find((h) => h.id === id).hash, record.id), digest);
@@ -382,26 +380,25 @@ async function main() {
     );
     assert.equal(await page.evaluate(async () => sha256(await SUBMIT.file.arrayBuffer())), digest);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.locator('#lang-toggle').click();
     assert.equal(
       await page.evaluate(async () => sha256(await SUBMIT.file.arrayBuffer())),
       digest,
-      'language switches preserve an open original',
+      'an open original survives the mobile layout',
     );
-    assert.ok(await page.getByRole('button', { name: '保存离线草稿', exact: true }).isVisible());
+    assert.ok(await page.getByRole('button', { name: 'Save offline draft', exact: true }).isVisible());
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.locator('#tabs [data-tab=regions]').click();
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     assert.ok(
       (await page.locator('.topbar').boundingBox()).height <= 80,
-      'mobile header stays compact in Chinese',
+      'mobile header stays compact',
     );
     await page.locator('.tab.active').evaluate(async (e) => {
       await Promise.all(e.getAnimations().map((a) => a.finished));
     });
     await page.screenshot({ path: path.join(root, '../regions-mobile-review.png'), fullPage: true });
     console.log(
-      'PASS: visible storage failures, retained originals on language changes and 390px bilingual layouts',
+      'PASS: visible storage failures, retained originals and 390px English-only layouts',
     );
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);

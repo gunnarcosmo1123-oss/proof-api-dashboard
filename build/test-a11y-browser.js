@@ -72,12 +72,14 @@ async function main(){
   assert.equal(await page.evaluate(() => document.activeElement.dataset.tab), last, 'End jumps to the last visible tab');
   console.log('PASS: ArrowRight/ArrowLeft/Home/End traverse all ' + order.length + ' visible views; hidden tabs are skipped');
 
-  /* 4) Tab back into the page and confirm the Chinese variant labels the same structure */
+  /* 4) English-only build: even ?lang=zh must not expose Chinese or a language switch */
   await page.goto(URL_BASE + '/?lang=zh&nosplash');
-  assert.ok((await page.locator('.tabs').getAttribute('aria-label')).length > 0, 'tablist has a localized aria-label');
-  assert.ok(await page.getByText('跳到主内容 / Skip to main content', { exact: true }).count(), 'skip link present in Chinese variant');
-  assert.equal(await visible.count(), order.length, 'Chinese variant exposes the same visible views');
-  console.log('PASS: Chinese variant keeps the same keyboard structure with localized labels');
+  assert.ok((await page.locator('.tabs').getAttribute('aria-label')).length > 0, 'tablist has an aria-label');
+  assert.ok(await page.getByText('Skip to main content', { exact: true }).count(), 'English skip link is present');
+  assert.equal(await visible.count(), order.length, 'the same visible views are exposed');
+  assert.ok(!(await page.locator('#lang-toggle').isVisible()), 'language switch is hidden');
+  assert.equal(await page.evaluate(() => /[\u4e00-\u9fff]/.test(document.body.innerText)), false, 'no Chinese text is rendered');
+  console.log('PASS: English-only UI keeps the same keyboard structure; ?lang=zh cannot switch language');
 
   assert.deepEqual(errors, []);
   await browser.close();

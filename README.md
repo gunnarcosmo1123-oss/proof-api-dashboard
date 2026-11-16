@@ -10,7 +10,7 @@
 
 </div>
 
-> 中文摘要:这是 Proof API 的可交互高保真原型——照片提交审核、本地启发式验证评分(端侧实测,演示规则)、重复检测拦截、结果总览分析,外加证据核查智能体;v0.2 新增组织分层分析(组织 → 城市 → 国家 → 全球)、全球行动地图(国家项目清单 + 日期回放)、行动覆盖缺口分析与行动大类(环境类 / 能源类)。纯前端零依赖,双击 index.html 即用,离线可演示,中英双语。
+> 中文摘要:这是 Proof API 的可交互高保真原型——照片提交审核、本地启发式验证评分(端侧实测,演示规则)、重复检测拦截、结果总览分析,外加证据核查智能体;v0.2 新增组织分层分析(组织 → 城市 → 国家 → 全球)、全球行动地图(国家项目清单 + 日期回放)、行动覆盖缺口分析与行动大类(环境类 / 能源类)。纯前端零依赖,双击 index.html 即用,离线可演示,界面为纯英文(仓库保留中文字典但不渲染)。
 
 ---
 
@@ -62,15 +62,15 @@ NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-a11y-browser.js
 MODEL_TEST=1 NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-evidence-browser.js
 ```
 
-`test-a11y-browser.js` checks the footer's accessibility claim the way a booth visitor would: Tab order (skip link first), WAI-ARIA tablist/tab/tabpanel semantics on every visible view (the view list is read from the DOM, so new tabs stay covered), and full keyboard traversal with ArrowRight/ArrowLeft/Home/End — in English and Chinese. A human screen-reader pass (NVDA or VoiceOver) is still recommended before claiming anything stronger.
+`test-a11y-browser.js` checks the footer's accessibility claim the way a booth visitor would: Tab order (skip link first), WAI-ARIA tablist/tab/tabpanel semantics on every visible view (the view list is read from the DOM, so new tabs stay covered), and full keyboard traversal with ArrowRight/ArrowLeft/Home/End — in the English-only UI. A human screen-reader pass (NVDA or VoiceOver) is still recommended before claiming anything stronger.
 
-Set `CHROMIUM_PATH` for your installed Chromium if needed. The first command checks the default path, paired evidence, source labels, model-load fallback, Chinese mobile layout and `file://` (reports a skip if browser policy blocks local-file navigation). `MODEL_TEST=1` additionally runs genuine CLIP inference, checks all six probabilities sum to one, performs a fresh-worker cache-only run, reloads the app offline, checks original-image reattachment by SHA, and tests fallback after evicting weights. The real-model test downloads ~150 MB and intentionally removes its cached weights at the end. Use `PROOF_TEST_PROFILE` only with a disposable test profile. In a managed network, `PROOF_TEST_MIRROR` can point to a test-only streaming mirror that verifies upstream TLS; it is never an application setting.
+Set `CHROMIUM_PATH` for your installed Chromium if needed. The first command checks the default path, paired evidence, source labels, model-load fallback, mobile layout and `file://` (reports a skip if browser policy blocks local-file navigation). `MODEL_TEST=1` additionally runs genuine CLIP inference, checks all six probabilities sum to one, performs a fresh-worker cache-only run, reloads the app offline, checks original-image reattachment by SHA, and tests fallback after evicting weights. The real-model test downloads ~150 MB and intentionally removes its cached weights at the end. Use `PROOF_TEST_PROFILE` only with a disposable test profile. In a managed network, `PROOF_TEST_MIRROR` can point to a test-only streaming mirror that verifies upstream TLS; it is never an application setting.
 
 ## Action Map: global and local community explorer
 
 The **Global action map** and **Country ranking** now stay visible. Below them, the **Community action explorer** starts with a global summary, verification metrics, country breakdown and a community action list; no country click is required. Country/city selectors, an exact **action date** picker, clickable recorded-date bars, **All dates** and **Reset all filters** control a shared scope. Dates refer to the claimed action date, not upload time. Choosing a location preserves the date; choosing a date preserves the location. Empty scopes explicitly show no records instead of inheriting all-time statistics.
 
-Click a map country, city pin, ranking entry or breakdown row to drill down. Search countries or the 14 recorded cities in English/Chinese (accent-insensitive, so “Medellin” finds Medellín). Selection zooms to the place, highlights it and displays its country/city/community verification analytics directly below. **+ / −**, drag-to-pan and **World view** control the viewport. On a selected date, the map and ranking use that day's global records: countries with any action status are outlined in gold, blue still encodes verified records, and pins show that day's city counts. Zero-data countries remain selectable and clearly empty.
+Click a map country, city pin, ranking entry or breakdown row to drill down. Search countries or the 14 recorded cities in English (accent-insensitive, so “Medellin” finds Medellín). Selection zooms to the place, highlights it and displays its country/city/community verification analytics directly below. **+ / −**, drag-to-pan and **World view** control the viewport. On a selected date, the map and ranking use that day's global records: countries with any action status are outlined in gold, blue still encodes verified records, and pins show that day's city counts. Zero-data countries remain selectable and clearly empty.
 
 **Open in Analytics** carries the country, city and action date into the existing hierarchy and gap analysis. The hierarchy also has its own date control. These use the same aggregation functions as the map; other existing Analytics charts retain their own stated scope. Map summaries, rankings, lists and coverage recompute after local submissions/review changes instead of holding a stale initial snapshot.
 
@@ -78,7 +78,7 @@ Click a map country, city pin, ranking entry or breakdown row to drill down. Sea
 
 The map remains zero-dependency and uses the bundled Natural Earth geometry, with no geocoding, map tiles or network calls. Its new script is included in the optional offline shell cache; existing CLIP weights are retained across the shell version change.
 
-Checks: `node build/test-map-explorer.js` for scopes, coverage denominators and live aggregation; `NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-map-browser.js` with the server running for global/date filtering, highlights, search, zoom/pan, Analytics handoff, recommendations, live updates, Chinese mobile layout and offline reload.
+Checks: `node build/test-map-explorer.js` for scopes, coverage denominators and live aggregation; `NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-map-browser.js` with the server running for global/date filtering, highlights, search, zoom/pan, Analytics handoff, recommendations, live updates, mobile layout and offline reload.
 
 ## Community experience: discover, plan, document and review
 
@@ -88,7 +88,7 @@ The Action Map adds **Map + gallery / Gallery / Table** modes with the same coun
 
 Each coverage card has **Explore this activity**, opening a three-step local project starter: suitability/permissions, project plan, and evidence/follow-up preparation. It collects a project name, community, recorded city, planned date, optional resources/plan and explicit browser-storage consent. Saving creates a project draft and prefills the Submit tab with its action, city, date and explicit project link. Permissions remain **to check**; planning checkboxes do not create baseline evidence or imply permits were granted.
 
-**Evidence guides** contains six bilingual Proof API field guides, version **1.0** (2026-11-15): cleanup, afforestation, solar, wetland restoration, EV charging and retrofit. Each describes suitable conditions, permissions/safeguards, resources, baseline records, action evidence and suggested follow-up. Verra and Climate Action Reserve links are reference frameworks; the guides are our own planning checklists, not approved certification methodologies. The Submit tab also offers optional structured, **self-reported** details (for example species/count/maintenance, solar kWp/installer/meter reference, or cleanup mass/disposal). Numeric details are validated, stored with the guide version and shown in the story; they never feed synthetic model confidence or certify outcomes.
+**Evidence guides** contains six English Proof API field guides, version **1.0** (2026-11-15): cleanup, afforestation, solar, wetland restoration, EV charging and retrofit. Each describes suitable conditions, permissions/safeguards, resources, baseline records, action evidence and suggested follow-up. Verra and Climate Action Reserve links are reference frameworks; the guides are our own planning checklists, not approved certification methodologies. The Submit tab also offers optional structured, **self-reported** details (for example species/count/maintenance, solar kWp/installer/meter reference, or cleanup mass/disposal). Numeric details are validated, stored with the guide version and shown in the story; they never feed synthetic model confidence or certify outcomes.
 
 **Project stories** open from gallery cards, table entries, the evidence drawer or submit results. A story includes the community/site, evidence photo and attribution, dated action/review/observation timeline, missing-baseline/follow-up states and the relevant field guide. Explicitly linked repeat submissions appear in one project; nearby records and duplicate photos are never automatically grouped. Seed and standalone records have a single-record story without invented baseline, follow-up or review events. A local project can accept dated baseline/follow-up notes, optional non-negative observations and optional reduced image previews (input limit 12 MB, preview up to 800 px). Dates are self-reported; baselines must precede the action, and follow-ups must follow the latest action. Earlier follow-ups do not count as outcome observations for a later action record.
 
@@ -96,7 +96,7 @@ Each coverage card has **Explore this activity**, opening a three-step local pro
 
 Projects, observation previews and review logs use the versioned `proof-community-v1` browser-storage entry; existing submissions/thumbnails remain in `proof-session`. No accounts, backend, image upload or external service is introduced. Saving fails visibly and atomically if project/review storage is unavailable or full; unreadable project storage is retained instead of silently overwritten. Original observation-photo bytes are not retained. Project-story URLs (`?tab=story&story=PR-…`) reopen local records on the same browser; another device needs its own records and shows an explicit unavailable state. A demo/standalone story uses `story=record:PA-…`.
 
-The new scripts and stylesheet are included in optional offline shell **v3**, retaining the existing model cache and prior-shell fallback. Checks: `node build/test-community.js`, plus `NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-community-browser.js` with the local server running. Browser coverage includes the complete project → linked submission → baseline/follow-up → reasoned review → reload/offline workflow, gallery/table filter parity, linked highlights, source/version labels and Chinese mobile layouts.
+The new scripts and stylesheet are included in optional offline shell **v3**, retaining the existing model cache and prior-shell fallback. Checks: `node build/test-community.js`, plus `NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-community-browser.js` with the local server running. Browser coverage includes the complete project → linked submission → baseline/follow-up → reasoned review → reload/offline workflow, gallery/table filter parity, linked highlights, source/version labels and mobile layouts.
 
 ## Date controls, visual polish, paired views, field capture and regions
 
@@ -123,7 +123,7 @@ node build/test-regional-tools.js
 NODE_PATH="$PWD/work/test-tools/node_modules" node build/test-regional-browser.js
 ```
 
-The new checks cover calendar boundaries, range/count parity, denominators, actual review/follow-up provenance, redaction, URL round trips, invalid-range feedback, replay lifecycle, regional selection, exact original bytes after offline draft restore/submission, opt-in location, framing, accessible comparison/acquisition selection, downloads, storage failures and bilingual mobile layout. Existing data, forensics, pHash, QR, evidence, map and community checks remain applicable.
+The new checks cover calendar boundaries, range/count parity, denominators, actual review/follow-up provenance, redaction, URL round trips, invalid-range feedback, replay lifecycle, regional selection, exact original bytes after offline draft restore/submission, opt-in location, framing, accessible comparison/acquisition selection, downloads, storage failures and English-only mobile layout. Existing data, forensics, pHash, QR, evidence, map and community checks remain applicable.
 
 ## One clear flow — submit → result → flags → receipt
 
@@ -151,7 +151,7 @@ The dashboard covers the four review dimensions from our brief — **photo submi
 | Module | Purpose | Key interactions |
 |---|---|---|
 | **Home** | Community entry point | Credited photo, explore/submit/review actions, illustrative action gallery and local project drafts |
-| **Evidence guides** | Action-specific planning and documentation | Six versioned bilingual field guides, applicability/source notes and a project-starter wizard |
+| **Evidence guides** | Action-specific planning and documentation | Six versioned English field guides, applicability/source notes and a project-starter wizard |
 | **Project story** | Follow an explicit project or standalone record | Evidence timeline, repeat submissions, baseline/follow-up observations, source attribution and local human-review history |
 | **Submit** | The end-to-end flow | Upload → animated verification → verdict + flags → forensics panel (ELA heatmap / EXIF / C2PA) → printable receipt; individual/organisation toggle + org picker with an **"Other — free-text name"** option; action date; one-click sample-photo demo; session submission history |
 | **Overview** | Pipeline health & 14-day window | 5 KPIs, stacked daily volume by outcome, score histogram, action-type ranking (grouped by category), live feeds with org labels |

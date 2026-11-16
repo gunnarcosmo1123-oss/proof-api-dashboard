@@ -585,23 +585,10 @@ en: {
 }
 };
 
-/* 语言三级回落:?lang= 查询参数 → localStorage → 浏览器语言(zh* → zh,其余 → en)。
-   国际评委默认看到英文首屏;中文用户浏览器自动得到中文。 */
-let LANG = null;
-try {
-  const q = new URLSearchParams(location.search).get('lang');
-  if(q === 'en' || q === 'zh'){
-    LANG = q;
-    try { localStorage.setItem('proof-lang', q); } catch(e) {}
-  }
-} catch(e) {}
-if(LANG !== 'zh' && LANG !== 'en'){
-  try { LANG = localStorage.getItem('proof-lang'); } catch(e) {}
-}
-if(LANG !== 'zh' && LANG !== 'en'){
-  if(typeof window !== 'undefined' && (window.__langHint === 'zh' || window.__langHint === 'en')) LANG = window.__langHint;
-  else LANG = (typeof navigator !== 'undefined' && navigator.language && String(navigator.language).startsWith('zh')) ? 'zh' : 'en';
-}
+/* English-only build: the UI language is fixed to English, regardless of URL
+   parameters, stored preferences or the browser locale. Chinese strings remain
+   in the dictionary for data compatibility but are never rendered. */
+let LANG = 'en';
 
 function t(k, vars){
   let s = (I18N[LANG] && I18N[LANG][k]) || I18N.zh[k] || k;

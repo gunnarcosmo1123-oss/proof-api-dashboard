@@ -81,13 +81,13 @@ async function main(){
 
   const mobile=await browser.newContext({viewport:{width:390,height:844}});
   const mobilePage=await mobile.newPage();
-  await mobilePage.goto(URL_BASE+'/?lang=zh&tab=submit&nosplash');await submit(mobilePage);
-  assert.ok((await mobilePage.locator('.model-panel').innerText()).includes('运行真实模型'));
+  await mobilePage.goto(URL_BASE+'/?lang=en&tab=submit&nosplash');await submit(mobilePage);
+  assert.ok((await mobilePage.locator('.model-panel').innerText()).includes('Run real model'));
   for(const selector of ['.model-panel','.pair-panel']){
     const bounds=await mobilePage.locator(selector).boundingBox();
     assert.ok(bounds.x>=0 && bounds.x+bounds.width<=390,selector+' fits mobile viewport');
   }
-  pass('Chinese evidence panels fit a 390px mobile viewport');
+  pass('English evidence panels fit a 390px mobile viewport');
   await mobile.close();await browser.close();assert.deepEqual(errors,[]);
 
   if(process.env.MODEL_TEST==='1') await realModel();

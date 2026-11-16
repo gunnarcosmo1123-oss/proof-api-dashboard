@@ -278,7 +278,6 @@ async function main() {
     );
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.locator('#lang-toggle').click();
     for (const tab of ['home', 'map', 'guides', 'story']) {
       await page.locator('#tabs [data-tab=' + tab + ']').click();
       assert.equal(
@@ -287,8 +286,9 @@ async function main() {
         tab + ' fits mobile',
       );
     }
-    assert.match(await page.locator('#tab-story').innerText(), /人工复核/);
-    console.log('PASS: bilingual mobile landing, gallery, guides and story layouts');
+    const storyText = await page.locator('#tab-story').innerText();
+    assert.ok(storyText.trim().length > 0 && !/[\u4e00-\u9fff]/.test(storyText), 'story content is English');
+    console.log('PASS: English-only mobile landing, gallery, guides and story layouts');
 
     await page.evaluate(async () => {
       const reg = await navigator.serviceWorker.register('sw.js');
